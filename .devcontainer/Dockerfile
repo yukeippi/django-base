@@ -78,3 +78,6 @@ WORKDIR /workspace
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/home/vscode/.local/bin:${PATH}"
+
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash

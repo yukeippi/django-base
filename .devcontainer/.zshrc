@@ -12,11 +12,15 @@ fi
 # Git prompt integration
 autoload -Uz vcs_info
 precmd() { vcs_info }
-zstyle ':vcs_info:git:*' formats '%F{yellow}(%b)%f '
+zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:git:*' stagedstr '%F{green}✔%f'
+zstyle ':vcs_info:git:*' unstagedstr '%F{red}✗%f'
+zstyle ':vcs_info:git:*' formats '%F{yellow}(%b)%f%c%u'
 setopt PROMPT_SUBST
 
 # Colorful prompt with Git branch
-PROMPT='%F{green}%n@%m%f:%F{blue}%~%f ${vcs_info_msg_0_}$ '
+# PROMPT='%F{green}%n@%m%f:%F{blue}%~%f ${vcs_info_msg_0_}$ '
+PROMPT='%F{blue}%~%f ${vcs_info_msg_0_} $ '
 
 # Enable syntax highlighting for common commands (if available)
 # Note: zsh-syntax-highlighting package would need to be installed for this
