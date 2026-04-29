@@ -9,14 +9,11 @@ HEADERS = ['タイトル', '説明', 'ステータス', '優先度', '期限']
 VALID_STATUSES = {choice[0] for choice in Task.STATUS_CHOICES}
 
 
+# Excelファイルを読み込んでTaskを一括作成する
+# 戻り値: (作成件数, エラーリスト)
+# エラーリスト要素: {'row': 行番号, 'message': エラー内容}
+# 想定列順: タイトル | 説明 | ステータス | 優先度 | 期限
 def import_tasks_from_excel(file, has_header=True):
-    """
-    Excelファイルを読み込んでTaskを一括作成する。
-    戻り値: (作成件数, エラーリスト)
-    エラーリスト要素: {'row': 行番号, 'message': エラー内容}
-
-    想定列順: タイトル | 説明 | ステータス | 優先度 | 期限
-    """
     # data_only=True で数式セルを計算済みの値として読む
     # （Excelで一度保存されたファイルのみ有効。未保存の場合はNoneになる）
     wb = openpyxl.load_workbook(file, data_only=True)
@@ -73,8 +70,8 @@ def import_tasks_from_excel(file, has_header=True):
     return created_count, errors
 
 
+# TaskのQuerySetを新規Excelファイルとしてレスポンスで返す
 def export_tasks_to_new_excel(tasks):
-    """TaskのQuerySetを新規Excelファイルとしてレスポンスで返す。"""
     wb = Workbook()
     ws = wb.active
     ws.title = 'タスク'
@@ -97,14 +94,9 @@ def export_tasks_to_new_excel(tasks):
     return response
 
 
+# 既存のテンプレートExcelにTaskデータを書き込んでレスポンスで返す
+# テンプレートのレイアウトに合わせて DATA_START_ROW と各列番号を調整すること
 def export_tasks_to_template(tasks, template_path):
-    """
-    既存のテンプレートExcelにTaskデータを書き込んでレスポンスで返す。
-
-    テンプレートのレイアウトに合わせて以下を調整してください:
-      - DATA_START_ROW: データ書き込み開始行
-      - 各列番号 (col_*)
-    """
     DATA_START_ROW = 2  # データ開始行（テンプレートに合わせて変更）
     col_title = 1
     col_description = 2

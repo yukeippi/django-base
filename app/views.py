@@ -8,48 +8,38 @@ from .forms import TaskImportForm
 from .excel import import_tasks_from_excel, export_tasks_to_new_excel, export_tasks_to_template
 
 
+# ホームページビュー
 def index(request):
-    """
-    ホームページビュー
-    """
     return render(request, 'app/index.html', {
         'title': 'Task Manager',
     })
 
 
+# タスク一覧ビュー
 class TaskListView(ListView):
-    """
-    タスク一覧ビュー
-    """
     model = Task
     template_name = 'app/task_list.html'
     context_object_name = 'tasks'
     paginate_by = 10
 
 
+# タスク詳細ビュー
 class TaskDetailView(DetailView):
-    """
-    タスク詳細ビュー
-    """
     model = Task
     template_name = 'app/task_detail.html'
     context_object_name = 'task'
 
 
+# タスクAPI（E2Eテスト用）
 def task_api(request):
-    """
-    タスクAPI（E2Eテスト用）
-    """
     if request.method == 'GET':
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
         return JsonResponse(list(tasks), safe=False)
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
+# ExcelファイルからTaskを一括インポートする
 def task_import(request):
-    """
-    ExcelファイルからTaskを一括インポートする。
-    """
     if request.method == 'POST':
         form = TaskImportForm(request.POST, request.FILES)
         if form.is_valid():
@@ -69,19 +59,15 @@ def task_import(request):
     return render(request, 'app/task_import.html', {'form': form})
 
 
+# 全タスクを新規Excelファイルとしてダウンロードする
 def task_export(request):
-    """
-    全タスクを新規Excelファイルとしてダウンロードする。
-    """
     tasks = Task.objects.all()
     return export_tasks_to_new_excel(tasks)
 
 
+# テンプレートExcelに全タスクを書き込んでダウンロードする
+# テンプレートファイルのパスは settings.EXCEL_TEMPLATE_PATH で指定すること
 def task_export_template(request):
-    """
-    テンプレートExcelに全タスクを書き込んでダウンロードする。
-    テンプレートファイルのパスはsettings.EXCEL_TEMPLATE_PATHで指定してください。
-    """
     from django.conf import settings
     template_path = getattr(settings, 'EXCEL_TEMPLATE_PATH', None)
     if not template_path:
