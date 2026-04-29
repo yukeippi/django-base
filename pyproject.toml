@@ -13,6 +13,7 @@ dependencies = [
     "pytest-playwright>=0.6.2",
     "pytest-xdist>=3.6.1",
     "playwright>=1.49.1",
+    "openpyxl>=3.1.5",
 ]
 
 [tool.pytest.ini_options]

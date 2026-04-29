@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>タスクインポート</title>
+</head>
+<body>
+    <h1>タスクをExcelからインポート</h1>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p>想定列順: タイトル | 説明 | ステータス（todo/in_progress/done） | 優先度（1〜5） | 期限（YYYY-MM-DD）</p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">インポート実行</button>
+    </form>
+
+    <p><a href="{% url 'app:task_list' %}">タスク一覧に戻る</a></p>
+</body>
+</html>
