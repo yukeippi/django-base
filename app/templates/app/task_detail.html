@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ task.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .task-detail {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .task-field {
+            margin-bottom: 15px;
+        }
+        .task-field label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="task-title">{{ task.title }}</h1>
+    <a href="{% url 'app:task_list' %}">一覧に戻る</a>
+
+    <div class="task-detail">
+        <div class="task-field">
+            <label>説明:</label>
+            <p id="task-description">{{ task.description|default:"なし" }}</p>
+        </div>
+        <div class="task-field">
+            <label>ステータス:</label>
+            <p id="task-status">{{ task.get_status_display }}</p>
+        </div>
+        <div class="task-field">
+            <label>優先度:</label>
+            <p id="task-priority">{{ task.priority }}</p>
+        </div>
+        <div class="task-field">
+            <label>担当者:</label>
+            <p id="task-assigned">{{ task.assigned_to|default:"未割り当て" }}</p>
+        </div>
+        <div class="task-field">
+            <label>期限:</label>
+            <p id="task-due-date">{{ task.due_date|date:"Y-m-d"|default:"なし" }}</p>
+        </div>
+    </div>
+</body>
+</html>

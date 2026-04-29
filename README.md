@@ -132,11 +132,50 @@ python manage.py runserver
 
 ブラウザで http://127.0.0.1:8000/ にアクセスして確認できます。
 
+## テスト
+
+このプロジェクトでは、pytestとPlaywrightを使用してテストを実装しています。
+
+### すべてのテストを実行
+
+```bash
+pytest
+```
+
+### ユニットテストのみ実行
+
+```bash
+pytest app/tests/unit/
+```
+
+### E2Eテストのみ実行
+
+```bash
+pytest app/tests/e2e/
+```
+
+### 詳細な出力付きで実行
+
+```bash
+pytest -v
+```
+
+### カバレッジレポート付きで実行
+
+```bash
+pytest --cov=app --cov=config --cov-report=html --cov-report=term
+```
+
+詳細なテストガイドは [docs/testing.md](docs/testing.md) を参照してください。
+
 ## 使用している主要なパッケージ
 
 - Django 5.2.8
 - django-environ 0.12.0 (環境変数管理)
 - psycopg2-binary 2.9.11 (PostgreSQL接続)
+- pytest 8.3.4+ (テストフレームワーク)
+- pytest-django 4.9.0+ (Django用pytestプラグイン)
+- playwright 1.49.1+ (E2Eテスト用ブラウザ自動化)
 
 ## 環境変数について
 

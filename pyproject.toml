@@ -8,4 +8,32 @@ dependencies = [
     "django>=5.2.8",
     "django-environ>=0.12.0",
     "psycopg2-binary>=2.9.11",
+    "pytest>=8.3.4",
+    "pytest-django>=4.9.0",
+    "pytest-playwright>=0.6.2",
+    "pytest-xdist>=3.6.1",
+    "playwright>=1.49.1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["app/tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+    "--reuse-db",
+]
+
+[tool.coverage.run]
+source = ["app", "config"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__init__.py",
+    "*/apps.py",
+    "*/admin.py",
 ]
