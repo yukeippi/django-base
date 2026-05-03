@@ -1,4 +1,10 @@
+import io
+
+import openpyxl
+import pytest
+
 from app.excel_base import ColumnDef, ExcelHandler
+from app.models import Task
 
 
 class TestColumnDef:
@@ -24,14 +30,6 @@ class TestColumnDef:
         assert col.required is True
         assert col.cell_to_value is to_val
         assert col.value_to_cell is to_cell
-
-
-import io
-
-import openpyxl
-import pytest
-
-from app.models import Task
 
 
 # テスト用Excelファイルをメモリ上に作成するヘルパー

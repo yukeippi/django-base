@@ -4,7 +4,6 @@ from typing import Callable, Optional
 import openpyxl
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import HttpResponse
 
 
 @dataclass
@@ -18,6 +17,7 @@ class ColumnDef:
 
 class ExcelHandler:
     model = None
+    # サブクラスで ColumnDef のリストを定義すること。実行時に直接 append しないこと。
     columns = []
     sheet_name = 'Sheet1'
     filename = 'export.xlsx'
