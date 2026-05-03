@@ -176,3 +176,52 @@ class TestExcelHandlerImportエラー系:
         assert len(errors) == 1
         assert not Task.objects.filter(title='正常タスク').exists()
         assert not Task.objects.filter(title='別の正常タスク').exists()
+
+
+@pytest.mark.django_db
+class TestExcelHandlerExportNewExcel:
+
+    def test_ヘッダー行が正しく出力される(self):
+        response = MinimalTaskHandler().export_to_new_excel(Task.objects.none())
+
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        rows = list(wb.active.iter_rows(values_only=True))
+        assert rows[0] == ('タイトル',)
+
+    def test_データ行が正しく出力される(self):
+        Task.objects.create(title='出力テスト')
+        response = MinimalTaskHandler().export_to_new_excel(Task.objects.all())
+
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        rows = list(wb.active.iter_rows(values_only=True))
+        assert len(rows) == 2
+        assert rows[1][0] == '出力テスト'
+
+    def test_value_to_cellで変換された値が出力される(self):
+        class UpperExportHandler(ExcelHandler):
+            model = Task
+            filename = 'test.xlsx'
+            columns = [
+                ColumnDef(
+                    model_field='title',
+                    excel_header='タイトル',
+                    value_to_cell=lambda v: v.upper() if v else v,
+                ),
+            ]
+
+        Task.objects.create(title='hello')
+        response = UpperExportHandler().export_to_new_excel(Task.objects.all())
+
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        rows = list(wb.active.iter_rows(values_only=True))
+        assert rows[1][0] == 'HELLO'
+
+    def test_ContentTypeがExcel形式になっている(self):
+        response = MinimalTaskHandler().export_to_new_excel(Task.objects.none())
+        assert response['Content-Type'] == (
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+    def test_filenameがContentDispositionに含まれる(self):
+        response = MinimalTaskHandler().export_to_new_excel(Task.objects.none())
+        assert 'test.xlsx' in response['Content-Disposition']

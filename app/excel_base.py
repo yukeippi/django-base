@@ -4,6 +4,7 @@ from typing import Callable, Optional
 import openpyxl
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.http import HttpResponse
 
 
 @dataclass
@@ -73,3 +74,26 @@ class ExcelHandler:
                 instance.save()
 
         return len(instances), []
+
+    def export_to_new_excel(self, queryset):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = self.sheet_name
+
+        ws.append([col.excel_header for col in self.columns])
+
+        for obj in queryset:
+            row = []
+            for col_def in self.columns:
+                value = getattr(obj, col_def.model_field)
+                if col_def.value_to_cell:
+                    value = col_def.value_to_cell(value)
+                row.append(value)
+            ws.append(row)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{self.filename}"'
+        wb.save(response)
+        return response
