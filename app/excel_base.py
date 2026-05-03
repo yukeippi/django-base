@@ -97,3 +97,23 @@ class ExcelHandler:
         response['Content-Disposition'] = f'attachment; filename="{self.filename}"'
         wb.save(response)
         return response
+
+    def export_to_template(self, queryset, template_path):
+        DATA_START_ROW = 2
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
+
+        for offset, obj in enumerate(queryset):
+            row = DATA_START_ROW + offset
+            for col_idx, col_def in enumerate(self.columns, start=1):
+                value = getattr(obj, col_def.model_field)
+                if col_def.value_to_cell:
+                    value = col_def.value_to_cell(value)
+                ws.cell(row=row, column=col_idx, value=value)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{self.filename}"'
+        wb.save(response)
+        return response

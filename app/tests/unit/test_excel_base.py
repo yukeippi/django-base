@@ -225,3 +225,46 @@ class TestExcelHandlerExportNewExcel:
     def test_filenameがContentDispositionに含まれる(self):
         response = MinimalTaskHandler().export_to_new_excel(Task.objects.none())
         assert 'test.xlsx' in response['Content-Disposition']
+
+
+@pytest.mark.django_db
+class TestExcelHandlerExportTemplate:
+
+    def test_テンプレートの指定セルにデータが書き込まれる(self, tmp_path):
+        template_path = tmp_path / 'template.xlsx'
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(['タイトル'])
+        wb.save(str(template_path))
+
+        Task.objects.create(title='テンプレートテスト')
+        response = MinimalTaskHandler().export_to_template(
+            Task.objects.all(), str(template_path)
+        )
+
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        assert wb.active.cell(row=2, column=1).value == 'テンプレートテスト'
+
+    def test_複数タスクが連続する行に書き込まれる(self, tmp_path):
+        template_path = tmp_path / 'template.xlsx'
+        openpyxl.Workbook().save(str(template_path))
+
+        Task.objects.create(title='タスク1')
+        Task.objects.create(title='タスク2')
+        response = MinimalTaskHandler().export_to_template(
+            Task.objects.all().order_by('id'), str(template_path)
+        )
+
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        ws = wb.active
+        assert ws.cell(row=2, column=1).value == 'タスク1'
+        assert ws.cell(row=3, column=1).value == 'タスク2'
+
+    def test_filenameがContentDispositionに含まれる(self, tmp_path):
+        template_path = tmp_path / 'template.xlsx'
+        openpyxl.Workbook().save(str(template_path))
+
+        response = MinimalTaskHandler().export_to_template(
+            Task.objects.none(), str(template_path)
+        )
+        assert 'test.xlsx' in response['Content-Disposition']
