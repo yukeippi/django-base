@@ -16,7 +16,7 @@ app/
   excel.py          # TaskExcelHandler（Task専用、現行を置き換え）
 ```
 
-`excel_base.py` は特定のモデルに依存しない汎用モジュールとして設計し、他アプリからも `from app.excel_base import ExcelHandler` でインポートして使える。
+`excel_base.py` は特定のモデルに依存しない汎用モジュールとして設計する。依存するのは `openpyxl` と Django のみとし、このファイル単体を別プロジェクトにコピーするだけで使えるよう自己完結させる。
 
 ## コンポーネント
 
