@@ -24,6 +24,9 @@ class ExcelHandler:
     filename = 'export.xlsx'
     data_start_row = 2
 
+    # Excelファイルを読み込んでモデルを一括作成する
+    # エラーが1件でもあれば全件ロールバックし、(0, エラーリスト) を返す
+    # 正常時は (作成件数, []) を返す
     def import_from_excel(self, file, has_header=True):
         wb = openpyxl.load_workbook(file, data_only=True)
         ws = wb.active
@@ -76,6 +79,8 @@ class ExcelHandler:
 
         return len(instances), []
 
+    # QuerySetを新規Excelファイルとして生成しHttpResponseで返す
+    # 1行目にヘッダー（excel_header）、2行目以降にデータを出力する
     def export_to_new_excel(self, queryset):
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -99,6 +104,8 @@ class ExcelHandler:
         wb.save(response)
         return response
 
+    # 既存のテンプレートExcelにQuerySetのデータを書き込みHttpResponseで返す
+    # data_start_row行目からデータを書き込み、テンプレートのレイアウトを保持する
     def export_to_template(self, queryset, template_path):
         data_start_row = self.data_start_row
         wb = openpyxl.load_workbook(template_path)
