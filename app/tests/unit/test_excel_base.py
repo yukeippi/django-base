@@ -268,3 +268,13 @@ class TestExcelHandlerExportTemplate:
             Task.objects.none(), str(template_path)
         )
         assert 'test.xlsx' in response['Content-Disposition']
+
+    def test_ContentTypeがExcel形式になっている(self, tmp_path):
+        template_path = tmp_path / 'template.xlsx'
+        openpyxl.Workbook().save(str(template_path))
+        response = MinimalTaskHandler().export_to_template(
+            Task.objects.none(), str(template_path)
+        )
+        assert response['Content-Type'] == (
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )

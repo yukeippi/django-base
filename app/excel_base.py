@@ -22,6 +22,7 @@ class ExcelHandler:
     columns = []
     sheet_name = 'Sheet1'
     filename = 'export.xlsx'
+    data_start_row = 2
 
     def import_from_excel(self, file, has_header=True):
         wb = openpyxl.load_workbook(file, data_only=True)
@@ -99,12 +100,12 @@ class ExcelHandler:
         return response
 
     def export_to_template(self, queryset, template_path):
-        DATA_START_ROW = 2
+        data_start_row = self.data_start_row
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
         for offset, obj in enumerate(queryset):
-            row = DATA_START_ROW + offset
+            row = data_start_row + offset
             for col_idx, col_def in enumerate(self.columns, start=1):
                 value = getattr(obj, col_def.model_field)
                 if col_def.value_to_cell:
