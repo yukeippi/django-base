@@ -105,3 +105,74 @@ class TestExcelHandlerImport正常系:
 
         assert count == 1
         assert Task.objects.filter(title='HELLO').exists()
+
+
+@pytest.mark.django_db
+class TestExcelHandlerImportエラー系:
+
+    def test_requiredフィールドが空の場合はエラーになる(self):
+        f = make_excel([['タイトル'], ['']])
+        count, errors = MinimalTaskHandler().import_from_excel(f, has_header=True)
+
+        assert count == 0
+        assert len(errors) == 1
+        assert errors[0]['row'] == 2
+        assert 'タイトルが空です' in errors[0]['message']
+
+    def test_full_cleanエラーが発生した場合はエラーリストに追加される(self):
+        class InvalidStatusHandler(ExcelHandler):
+            model = Task
+            filename = 'test.xlsx'
+            columns = [
+                ColumnDef(model_field='title',  excel_header='タイトル', required=True),
+                ColumnDef(model_field='status', excel_header='ステータス',
+                          cell_to_value=lambda v: v or 'todo'),
+            ]
+
+        f = make_excel([
+            ['タイトル', 'ステータス'],
+            ['タスクA', 'invalid_status'],
+        ])
+        count, errors = InvalidStatusHandler().import_from_excel(f, has_header=True)
+
+        assert count == 0
+        assert len(errors) == 1
+
+    def test_cell_to_valueがValueErrorを発生した場合はエラーになる(self):
+        def strict_converter(v):
+            if v == 'bad':
+                raise ValueError('変換エラー')
+            return v
+
+        class StrictHandler(ExcelHandler):
+            model = Task
+            filename = 'test.xlsx'
+            columns = [
+                ColumnDef(
+                    model_field='title',
+                    excel_header='タイトル',
+                    required=True,
+                    cell_to_value=strict_converter,
+                ),
+            ]
+
+        f = make_excel([['タイトル'], ['bad']])
+        count, errors = StrictHandler().import_from_excel(f, has_header=True)
+
+        assert count == 0
+        assert len(errors) == 1
+        assert '変換エラー' in errors[0]['message']
+
+    def test_エラーが1件でもあれば全件ロールバックされる(self):
+        f = make_excel([
+            ['タイトル'],
+            ['正常タスク'],
+            [''],           # エラー行
+            ['別の正常タスク'],
+        ])
+        count, errors = MinimalTaskHandler().import_from_excel(f, has_header=True)
+
+        assert count == 0
+        assert len(errors) == 1
+        assert not Task.objects.filter(title='正常タスク').exists()
+        assert not Task.objects.filter(title='別の正常タスク').exists()
