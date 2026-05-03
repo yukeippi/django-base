@@ -53,6 +53,7 @@ class TestTaskExcelHandlerImport:
         count, errors = TaskExcelHandler().import_from_excel(f, has_header=True)
 
         assert count == 1
+        assert errors == []
         assert Task.objects.get(title='タスクC').status == 'todo'
 
     def test_優先度が空の場合はデフォルト値3になる(self):
@@ -63,6 +64,7 @@ class TestTaskExcelHandlerImport:
         count, errors = TaskExcelHandler().import_from_excel(f, has_header=True)
 
         assert count == 1
+        assert errors == []
         assert Task.objects.get(title='タスクD').priority == 3
 
     def test_期限が空の場合はNoneになる(self):
@@ -73,6 +75,7 @@ class TestTaskExcelHandlerImport:
         count, errors = TaskExcelHandler().import_from_excel(f, has_header=True)
 
         assert count == 1
+        assert errors == []
         assert Task.objects.get(title='タスクE').due_date is None
 
     def test_タイトルが空の行はエラーになる(self):
