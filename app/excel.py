@@ -4,6 +4,9 @@ from .excel_base import ColumnDef, ExcelHandler
 from .models import Task
 
 
+# セル値を date オブジェクトに変換する
+# datetime 型はそのまま .date() で変換、文字列は parse_date で解析する
+# 解析できない場合は ValueError を送出する
 def _parse_date_cell(value):
     if value is None or value == '':
         return None
