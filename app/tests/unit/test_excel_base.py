@@ -5,6 +5,7 @@ import pytest
 
 from app.excel_base import ColumnDef, ExcelHandler
 from app.models import Task
+from app.tests.unit.conftest import make_excel
 
 
 class TestColumnDef:
@@ -30,18 +31,6 @@ class TestColumnDef:
         assert col.required is True
         assert col.cell_to_value is to_val
         assert col.value_to_cell is to_cell
-
-
-# テスト用Excelファイルをメモリ上に作成するヘルパー
-def make_excel(rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    for row in rows:
-        ws.append(row)
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf
 
 
 # Taskモデルを使った最小構成のハンドラー（汎用ロジックのテスト用）

@@ -6,17 +6,7 @@ import pytest
 
 from app.excel import TaskExcelHandler
 from app.models import Task
-
-
-def make_excel(rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    for row in rows:
-        ws.append(row)
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf
+from app.tests.unit.conftest import make_excel
 
 
 @pytest.mark.django_db
