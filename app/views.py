@@ -5,7 +5,7 @@ from django.contrib import messages
 
 from .models import Task
 from .forms import TaskImportForm
-from .excel import import_tasks_from_excel, export_tasks_to_new_excel, export_tasks_to_template
+from .excel import TaskExcelHandler
 
 
 # ホームページビュー
@@ -43,7 +43,8 @@ def task_import(request):
     if request.method == 'POST':
         form = TaskImportForm(request.POST, request.FILES)
         if form.is_valid():
-            created_count, errors = import_tasks_from_excel(
+            handler = TaskExcelHandler()
+            created_count, errors = handler.import_from_excel(
                 file=request.FILES['file'],
                 has_header=form.cleaned_data['has_header'],
             )
@@ -61,8 +62,7 @@ def task_import(request):
 
 # 全タスクを新規Excelファイルとしてダウンロードする
 def task_export(request):
-    tasks = Task.objects.all()
-    return export_tasks_to_new_excel(tasks)
+    return TaskExcelHandler().export_to_new_excel(Task.objects.all())
 
 
 # テンプレートExcelに全タスクを書き込んでダウンロードする
@@ -74,5 +74,4 @@ def task_export_template(request):
         messages.error(request, 'settings.EXCEL_TEMPLATE_PATH が設定されていません。')
         return redirect('app:task_list')
 
-    tasks = Task.objects.all()
-    return export_tasks_to_template(tasks, template_path)
+    return TaskExcelHandler().export_to_template(Task.objects.all(), template_path)
