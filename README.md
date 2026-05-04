@@ -1,4 +1,72 @@
-# Django Project
+# Django Excel ハンドラー実験プロジェクト
+
+Django + openpyxl を使った **汎用 Excel インポート・エクスポートハンドラー** の実験場です。
+`app/excel_base.py` を別プロジェクトにコピーして再利用することを想定して設計しています。
+
+## Excel ハンドラーの概要
+
+### ファイル構成
+
+| ファイル | 役割 |
+|---|---|
+| `app/excel_base.py` | 汎用ロジック（他プロジェクトへの転用用） |
+| `app/excel.py` | `Task` モデル用の具体的な設定 |
+
+### 主要クラス
+
+**`ColumnDef`** — 1列分の定義（DB カラム名と Excel ヘッダー名のマッピング）
+
+```python
+ColumnDef(
+    model_field='due_date',      # モデルのフィールド名
+    excel_header='期限',          # Excel の列ヘッダー名
+    required=False,
+    cell_to_value=parse_date_cell,   # インポート時: セル値 → Python 値
+    value_to_cell=lambda v: str(v) if v else '',  # エクスポート時: Python 値 → セル値
+)
+```
+
+**`ExcelHandler`** — インポート・エクスポートの汎用基底クラス
+
+```python
+handler.import_from_excel(file, has_header=True)  # → (作成件数, エラーリスト)
+handler.export_to_new_excel(queryset)              # → HttpResponse
+handler.export_to_template(queryset, template_path)  # → HttpResponse
+```
+
+インポートはエラーが 1 件でもあれば **全件ロールバック**。バリデーションは Django の `Model.full_clean()` に委譲。
+
+### 別モデルへの適用方法
+
+`TaskExcelHandler`（`app/excel.py`）を参考に、`ExcelHandler` を継承してクラスを定義するだけです。
+
+```python
+from app.excel_base import ColumnDef, ExcelHandler
+from .models import Product
+
+class ProductExcelHandler(ExcelHandler):
+    model = Product
+    sheet_name = '商品'
+    filename = 'products.xlsx'
+    columns = [
+        ColumnDef(model_field='name',  excel_header='商品名', required=True),
+        ColumnDef(model_field='price', excel_header='価格',
+                  cell_to_value=lambda v: int(v) if v else 0),
+    ]
+```
+
+あとは `views.py` でインスタンスを作って呼び出すだけです。
+
+```python
+# インポート
+handler = ProductExcelHandler()
+count, errors = handler.import_from_excel(request.FILES['file'])
+
+# エクスポート
+return ProductExcelHandler().export_to_new_excel(Product.objects.all())
+```
+
+---
 
 ## 環境構築
 
