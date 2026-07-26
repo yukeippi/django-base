@@ -13,12 +13,12 @@
 
 ## 2. 技術スタック
 
-- Django 5.2.8
+- Django 6.0
 - PostgreSQL (psycopg2-binary 2.9.11 で接続)
 - django-environ 0.12.0 (環境変数管理)
-- pytest 8.3.4+ / pytest-django 4.9.0+ (テストフレームワーク)
-- pytest-playwright 0.6.2+ / playwright 1.49.1+ (E2Eテスト用ブラウザ自動化)
-- pytest-xdist 3.6.1+ (並列テスト実行)
+- pytest 9.0.3+ / pytest-django 4.12.0+ (テストフレームワーク)
+- pytest-playwright 0.7.2+ / playwright 1.58.0+ (E2Eテスト用ブラウザ自動化)
+- pytest-xdist 3.8.0+ (並列テスト実行)
 - パッケージ管理: uv
 
 ## 3. ディレクトリ構成
