@@ -24,19 +24,32 @@
 ## 3. ディレクトリ構成
 
 ```
-config/         Djangoプロジェクト設定 (settings.py, urls.py, asgi.py, wsgi.py)
-app/            メインアプリケーション
-├── models.py
-├── views.py
+config/          Djangoプロジェクト設定 (settings.py, urls.py, asgi.py, wsgi.py)
+app/             メインアプリケーション
+├── models/          モデル(1モデル1ファイル)
+│   └── task.py
+├── views/           ビュー(機能ごとにファイル分割)
+│   ├── home.py
+│   └── task.py
 ├── urls.py
 ├── admin.py
-├── templates/app/
+├── static/app/      アプリ固有の静的ファイル
+│   └── task.css
+├── templates/
+│   ├── base/            共通レイアウト
+│   │   └── base.html
+│   └── app/
+│       ├── index.html
+│       └── task/        モデルごとのテンプレート (index/show/new/edit)
+│           ├── index.html
+│           └── show.html
 └── tests/
-    ├── unit/   ユニットテスト (モデルなど)
-    └── e2e/    E2Eテスト (Playwright)
+    ├── unit/        ユニットテスト(モデルごとにファイル分割)
+    └── e2e/         E2Eテスト(Playwright、機能ごとにファイル分割)
+common/          複数アプリ間で共有するモジュール (auth.py, utils.py, mixins.py)
+static/          プロジェクト全体の共通静的ファイル
+└── common.css
 ```
-
-<!-- TODO: appが今後複数に分割される場合や、models/views/tests等がディレクトリ化された場合はここを更新 -->
 
 ## 4. セットアップ・よく使うコマンド
 

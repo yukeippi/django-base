@@ -19,13 +19,14 @@ app/
 └── tests/
     ├── __init__.py
     ├── conftest.py              # 共通のフィクスチャ設定
-    ├── unit/                    # ユニットテスト
+    ├── unit/                    # ユニットテスト(モデルごとにファイル分割)
     │   ├── __init__.py
-    │   └── test_models.py       # モデルのテスト
-    └── e2e/                     # E2Eテスト
+    │   └── task_test.py         # Taskモデルのテスト
+    └── e2e/                     # E2Eテスト(機能ごとにファイル分割)
         ├── __init__.py
         ├── conftest.py          # E2E専用のフィクスチャ
-        └── test_pages.py        # ページのE2Eテスト
+        ├── home_test.py         # ホームページのE2Eテスト
+        └── task_test.py         # タスク関連ページのE2Eテスト
 ```
 
 ## テストの実行方法
@@ -65,13 +66,13 @@ pytest --cov=app --cov=config --cov-report=html --cov-report=term
 ### 特定のテストファイルを実行
 
 ```bash
-pytest app/tests/unit/test_models.py -v
+pytest app/tests/unit/task_test.py -v
 ```
 
 ### 特定のテストクラス・メソッドを実行
 
 ```bash
-pytest app/tests/unit/test_models.py::TestTaskModel::test_create_task_with_minimal_fields -v
+pytest app/tests/unit/task_test.py::TestTaskModel::test_create_task_with_minimal_fields -v
 ```
 
 ### 並列実行
@@ -89,24 +90,18 @@ import pytest
 from app.models import Task
 
 
+# Taskモデルのテストクラス
 @pytest.mark.django_db
 class TestTaskModel:
-    """
-    Taskモデルのテストクラス
-    """
 
+    # タスクを作成できることを確認
     def test_create_task(self):
-        """
-        タスクを作成できることを確認
-        """
         task = Task.objects.create(title='Test Task')
         assert task.id is not None
         assert task.title == 'Test Task'
 
+    # フィクスチャを使用したテスト
     def test_with_user(self, sample_user):
-        """
-        フィクスチャを使用したテスト
-        """
         task = Task.objects.create(
             title='User Task',
             assigned_to=sample_user
@@ -121,26 +116,20 @@ import pytest
 from playwright.sync_api import Page, expect
 
 
+# ホームページのE2Eテスト
 @pytest.mark.django_db
 class TestHomePage:
-    """
-    ホームページのE2Eテスト
-    """
 
+    # ホームページが正常に読み込まれることを確認
     def test_home_page_loads(self, page: Page, live_server_url):
-        """
-        ホームページが正常に読み込まれることを確認
-        """
         page.goto(live_server_url)
 
         # 要素の確認
         title_element = page.locator('#title')
         expect(title_element).to_have_text('Task Manager')
 
+    # テストデータを使用したE2Eテスト
     def test_with_data(self, page: Page, live_server_url, setup_test_data):
-        """
-        テストデータを使用したE2Eテスト
-        """
         page.goto(f'{live_server_url}/tasks/')
 
         # テーブルの存在確認

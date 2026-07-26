@@ -3,28 +3,22 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.management import call_command
 
 
+# E2Eテスト用のデータベース設定とマイグレーション
 @pytest.fixture(scope='session')
 def django_db_setup(django_db_setup, django_db_blocker):
-    """
-    E2Eテスト用のデータベース設定とマイグレーション
-    """
     with django_db_blocker.unblock():
         call_command('migrate', '--run-syncdb')
 
 
+# ライブサーバーのURLを返すフィクスチャ
 @pytest.fixture(scope='function')
 def live_server_url(live_server):
-    """
-    ライブサーバーのURLを返すフィクスチャ
-    """
     return live_server.url
 
 
+# E2Eテスト用のテストデータをセットアップ
 @pytest.fixture(scope='function')
 def setup_test_data(db):
-    """
-    E2Eテスト用のテストデータをセットアップ
-    """
     from django.contrib.auth.models import User
     from app.models import Task
     from datetime import date, timedelta

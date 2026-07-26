@@ -1,41 +1,25 @@
-from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from django.http import JsonResponse
-from .models import Task
+from app.models import Task
 
 
-def index(request):
-    """
-    ホームページビュー
-    """
-    return render(request, 'app/index.html', {
-        'title': 'Task Manager',
-    })
-
-
+# タスク一覧ビュー
 class TaskListView(ListView):
-    """
-    タスク一覧ビュー
-    """
     model = Task
-    template_name = 'app/task_list.html'
+    template_name = 'app/task/index.html'
     context_object_name = 'tasks'
     paginate_by = 10
 
 
+# タスク詳細ビュー
 class TaskDetailView(DetailView):
-    """
-    タスク詳細ビュー
-    """
     model = Task
-    template_name = 'app/task_detail.html'
+    template_name = 'app/task/show.html'
     context_object_name = 'task'
 
 
+# タスクAPI（E2Eテスト用）
 def task_api(request):
-    """
-    タスクAPI（E2Eテスト用）
-    """
     if request.method == 'GET':
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
         return JsonResponse(list(tasks), safe=False)

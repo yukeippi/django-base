@@ -3,10 +3,8 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
+# タスク管理のためのサンプルモデル
 class Task(models.Model):
-    """
-    タスク管理のためのサンプルモデル
-    """
     STATUS_CHOICES = [
         ('todo', 'To Do'),
         ('in_progress', 'In Progress'),
@@ -46,17 +44,13 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
+    # 期限を過ぎているかチェック
     def is_overdue(self):
-        """
-        期限を過ぎているかチェック
-        """
         if not self.due_date:
             return False
         from django.utils import timezone
         return self.due_date < timezone.now().date() and self.status != 'done'
 
+    # 完了可能かチェック
     def can_be_completed(self):
-        """
-        完了可能かチェック
-        """
         return self.status in ['todo', 'in_progress']

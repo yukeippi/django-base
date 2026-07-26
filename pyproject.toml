@@ -29,7 +29,7 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["app", "config"]
+source = ["app", "config", "common"]
 omit = [
     "*/migrations/*",
     "*/tests/*",
