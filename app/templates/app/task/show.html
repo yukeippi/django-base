@@ -1,0 +1,36 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app/task.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1 id="task-title">{{ task.title }}</h1>
+<a href="{% url 'app:task_list' %}">一覧に戻る</a>
+
+<div class="task-detail">
+    <div class="task-field">
+        <label>説明:</label>
+        <p id="task-description">{{ task.description|default:"なし" }}</p>
+    </div>
+    <div class="task-field">
+        <label>ステータス:</label>
+        <p id="task-status">{{ task.get_status_display }}</p>
+    </div>
+    <div class="task-field">
+        <label>優先度:</label>
+        <p id="task-priority">{{ task.priority }}</p>
+    </div>
+    <div class="task-field">
+        <label>担当者:</label>
+        <p id="task-assigned">{{ task.assigned_to|default:"未割り当て" }}</p>
+    </div>
+    <div class="task-field">
+        <label>期限:</label>
+        <p id="task-due-date">{{ task.due_date|date:"Y-m-d"|default:"なし" }}</p>
+    </div>
+</div>
+{% endblock %}

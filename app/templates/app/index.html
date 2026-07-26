@@ -1,42 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .link-container {
-            margin-top: 20px;
-        }
-        a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        a:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <h1 id="title">{{ title }}</h1>
-    <p>タスク管理アプリケーションへようこそ</p>
-    <div class="link-container">
-        <a href="{% url 'app:task_list' %}" id="tasks-link">タスク一覧</a>
-        <a href="/admin/" id="admin-link">管理画面</a>
-    </div>
-</body>
-</html>
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1 id="title">{{ title }}</h1>
+<p>タスク管理アプリケーションへようこそ</p>
+<div class="link-container">
+    <a href="{% url 'app:task_list' %}" id="tasks-link">タスク一覧</a>
+    <a href="/admin/" id="admin-link">管理画面</a>
+</div>
+{% endblock %}

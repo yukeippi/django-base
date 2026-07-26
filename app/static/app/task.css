@@ -1,0 +1,38 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.task-row {
+    cursor: pointer;
+}
+
+.task-row:hover {
+    background-color: #f5f5f5;
+}
+
+.task-detail {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.task-field {
+    margin-bottom: 15px;
+}
+
+.task-field label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}

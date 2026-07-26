@@ -6,11 +6,9 @@ from django.conf import settings
 os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
 
 
+# テスト用のデータベース設定
 @pytest.fixture(scope='session')
 def django_db_setup(django_db_setup, django_db_blocker):
-    """
-    テスト用のデータベース設定
-    """
     from django.core.management import call_command
 
     with django_db_blocker.unblock():
@@ -18,11 +16,9 @@ def django_db_setup(django_db_setup, django_db_blocker):
         call_command('migrate', '--run-syncdb')
 
 
+# テスト用のサンプルユーザーを作成するフィクスチャ
 @pytest.fixture
 def sample_user(db):
-    """
-    テスト用のサンプルユーザーを作成するフィクスチャ
-    """
     from django.contrib.auth.models import User
     return User.objects.create_user(
         username='testuser',
