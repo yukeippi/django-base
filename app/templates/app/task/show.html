@@ -9,7 +9,9 @@
 
 {% block content %}
 <h1 id="task-title">{{ task.title }}</h1>
-<a href="{% url 'app:task_list' %}">一覧に戻る</a>
+<a href="{% url 'app:task_index' %}">一覧に戻る</a>
+<a href="{% url 'app:task_edit' task.pk %}" id="edit-task-link">編集</a>
+<a href="{% url 'app:task_delete' task.pk %}" id="delete-task-link">削除</a>
 
 <div class="task-detail">
     <div class="task-field">

@@ -1,4 +1,4 @@
-from .home import index
-from .task import TaskListView, TaskDetailView, task_api
+from . import home
+from . import task
 
-__all__ = ['index', 'TaskListView', 'TaskDetailView', 'task_api']
+__all__ = ['home', 'task']

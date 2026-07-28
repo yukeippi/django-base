@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}タスク削除確認{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app/task.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>タスクを削除しますか?</h1>
+<p id="delete-task-title">{{ task.title }}</p>
+
+<form method="post" id="task-delete-form">
+    {% csrf_token %}
+    <button type="submit" id="task-delete-confirm">削除する</button>
+</form>
+<a href="{% url 'app:task_show' task.pk %}">キャンセル</a>
+{% endblock %}

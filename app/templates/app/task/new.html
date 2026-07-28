@@ -1,0 +1,15 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}タスク新規作成{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app/task.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>タスク新規作成</h1>
+<a href="{% url 'app:task_index' %}">一覧に戻る</a>
+
+{% include 'app/task/_form.html' %}
+{% endblock %}
