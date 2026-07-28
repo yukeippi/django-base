@@ -1,0 +1,35 @@
+<form method="post" id="task-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-field">
+        <label for="{{ form.title.id_for_label }}">タイトル</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
+    <div class="form-field">
+        <label for="{{ form.description.id_for_label }}">説明</label>
+        {{ form.description }}
+        {{ form.description.errors }}
+    </div>
+    <div class="form-field">
+        <label for="{{ form.status.id_for_label }}">ステータス</label>
+        {{ form.status }}
+        {{ form.status.errors }}
+    </div>
+    <div class="form-field">
+        <label for="{{ form.priority.id_for_label }}">優先度</label>
+        {{ form.priority }}
+        {{ form.priority.errors }}
+    </div>
+    <div class="form-field">
+        <label for="{{ form.assigned_to.id_for_label }}">担当者</label>
+        {{ form.assigned_to }}
+        {{ form.assigned_to.errors }}
+    </div>
+    <div class="form-field">
+        <label for="{{ form.due_date.id_for_label }}">期限</label>
+        {{ form.due_date }}
+        {{ form.due_date.errors }}
+    </div>
+    <button type="submit" id="task-form-submit">保存</button>
+</form>

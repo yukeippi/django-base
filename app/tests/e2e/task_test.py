@@ -69,3 +69,86 @@ class TestTaskAPI:
         assert 'E2E Test Task 1' in content
         assert 'E2E Test Task 2' in content
         assert 'E2E Test Task 3' in content
+
+
+@pytest.mark.django_db
+class TestTaskCreatePage:
+
+    # 新規作成フォームが表示されることを確認
+    def test_new_task_form_displays(self, page: Page, live_server_url):
+        page.goto(f'{live_server_url}/tasks/new/')
+
+        expect(page.locator('#task-form')).to_be_visible()
+
+    # タスクを新規作成すると詳細ページにリダイレクトされ、成功メッセージが表示されることを確認
+    def test_create_task_redirects_to_detail(self, page: Page, live_server_url):
+        page.goto(f'{live_server_url}/tasks/new/')
+
+        page.fill('#id_title', 'Created via E2E')
+        page.select_option('#id_status', 'todo')
+        page.fill('#id_priority', '2')
+        page.click('#task-form-submit')
+
+        expect(page.locator('#task-title')).to_have_text('Created via E2E')
+        expect(page.locator('.messages')).to_contain_text('タスクを作成しました。')
+
+
+@pytest.mark.django_db
+class TestTaskEditPage:
+
+    # タスクを編集すると詳細ページにリダイレクトされ、成功メッセージが表示されることを確認
+    def test_edit_task_updates_and_redirects(self, page: Page, live_server_url):
+        from app.models import Task
+        task = Task.objects.create(title='Before Edit', status='todo', priority=3)
+
+        page.goto(f'{live_server_url}/tasks/{task.id}/edit/')
+        page.fill('#id_title', 'After Edit')
+        page.click('#task-form-submit')
+
+        expect(page.locator('#task-title')).to_have_text('After Edit')
+        expect(page.locator('.messages')).to_contain_text('タスクを更新しました。')
+
+
+@pytest.mark.django_db
+class TestTaskDeletePage:
+
+    # タスクを削除すると一覧ページにリダイレクトされ、成功メッセージが表示されることを確認
+    def test_delete_task_removes_and_redirects_to_index(self, page: Page, live_server_url):
+        from app.models import Task
+        task = Task.objects.create(title='To Delete')
+
+        page.goto(f'{live_server_url}/tasks/{task.id}/delete/')
+        expect(page.locator('#delete-task-title')).to_have_text('To Delete')
+
+        page.click('#task-delete-confirm')
+
+        expect(page).to_have_url(f'{live_server_url}/tasks/')
+        expect(page.locator('.messages')).to_contain_text('タスクを削除しました。')
+        assert Task.objects.filter(id=task.id).count() == 0
+
+
+@pytest.mark.django_db
+class TestTaskFullCrudFlow:
+
+    # 新規作成→編集→削除までの一連の操作が正しく機能することを確認
+    def test_create_edit_delete_flow(self, page: Page, live_server_url):
+        # 新規作成
+        page.goto(f'{live_server_url}/tasks/')
+        page.click('#new-task-link')
+        page.fill('#id_title', 'Full Flow Task')
+        page.select_option('#id_status', 'todo')
+        page.fill('#id_priority', '3')
+        page.click('#task-form-submit')
+        expect(page.locator('#task-title')).to_have_text('Full Flow Task')
+
+        # 編集
+        page.click('#edit-task-link')
+        page.fill('#id_title', 'Full Flow Task Updated')
+        page.click('#task-form-submit')
+        expect(page.locator('#task-title')).to_have_text('Full Flow Task Updated')
+
+        # 削除
+        page.click('#delete-task-link')
+        page.click('#task-delete-confirm')
+        expect(page).to_have_url(f'{live_server_url}/tasks/')
+        expect(page.locator('#no-tasks')).to_be_visible()

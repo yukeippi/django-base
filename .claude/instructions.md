@@ -72,6 +72,46 @@ templates/app/task/new.html
 templates/app/task/edit.html
 ```
 
+## View Naming Rules
+
+ビューは関数ベースビュー(FBV)で実装する。関数名・テンプレートファイル名・URL名の3つの対応が一目でわかるよう、以下のルールで揃える。
+
+- **関数名**: テンプレートファイル名(上記Template Directory Rulesの`index`/`show`/`new`/`edit`)と同じ名前にする。削除確認ページを伴う場合は`delete`とする。
+- **URL名**: `<モデル名>_<関数名>` とする(例: `task_index`, `task_show`, `task_new`, `task_edit`, `task_delete`)。同一Djangoアプリ内で複数モデルのURL名が衝突しないようにするため。
+- **関数の配置**: `app/views/<model>.py` に関数として定義する。複数モデルの関数名(`index`/`show`等)が衝突するため、`app/views/__init__.py` では個々の関数をフラットに再エクスポートせず、モジュール単位でインポートする。`urls.py`側は `views.<model>.<関数名>` の形で参照する。
+
+### Example
+
+```python
+# app/views/__init__.py
+from . import home
+from . import task
+
+__all__ = ['home', 'task']
+```
+
+```python
+# app/views/task.py
+def index(request):
+    ...
+
+def show(request, pk):
+    ...
+```
+
+```python
+# app/urls.py
+from . import views
+
+urlpatterns = [
+    path('tasks/', views.task.index, name='task_index'),
+    path('tasks/<int:pk>/', views.task.show, name='task_show'),
+    path('tasks/new/', views.task.new, name='task_new'),
+    path('tasks/<int:pk>/edit/', views.task.edit, name='task_edit'),
+    path('tasks/<int:pk>/delete/', views.task.delete, name='task_delete'),
+]
+```
+
 ## Partial Template Rules
 
 Djangoにはpartialに関するネーミング規則が無いため、Railsに倣い、`{% include %}` で読み込むパーシャルテンプレートのファイル名の先頭には `_` を付ける。

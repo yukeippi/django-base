@@ -2,6 +2,7 @@ import pytest
 from datetime import date, timedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from app.forms.task import TaskForm
 from app.models import Task
 
 
@@ -129,3 +130,201 @@ class TestTaskModel:
         task.refresh_from_db()
         assert task.assigned_to is None
         assert task.id is not None
+
+
+@pytest.mark.django_db
+class TestTaskIndexView:
+
+    # タスクが無い場合、空の一覧が返ることを確認
+    def test_index_with_no_tasks(self, client):
+        response = client.get('/tasks/')
+        assert response.status_code == 200
+        assert list(response.context['tasks']) == []
+
+    # タスクが一覧に表示されることを確認
+    def test_index_with_tasks(self, client):
+        Task.objects.create(title='Task 1')
+        Task.objects.create(title='Task 2')
+
+        response = client.get('/tasks/')
+        assert response.status_code == 200
+        assert len(response.context['tasks']) == 2
+
+
+@pytest.mark.django_db
+class TestTaskShowView:
+
+    # 存在するタスクの詳細が取得できることを確認
+    def test_show_existing_task(self, client):
+        task = Task.objects.create(title='Task Detail')
+
+        response = client.get(f'/tasks/{task.id}/')
+        assert response.status_code == 200
+        assert response.context['task'] == task
+
+    # 存在しないタスクの場合404が返ることを確認
+    def test_show_nonexistent_task_returns_404(self, client):
+        response = client.get('/tasks/9999/')
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestTaskForm:
+
+    # 有効なデータでフォームが妥当と判定されることを確認
+    def test_valid_data_is_valid(self):
+        form = TaskForm(data={
+            'title': 'New Task',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+        assert form.is_valid()
+
+    # タイトル未入力の場合、フォームが無効と判定されることを確認
+    def test_missing_title_is_invalid(self):
+        form = TaskForm(data={
+            'title': '',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+        assert not form.is_valid()
+        assert 'title' in form.errors
+
+    # 優先度が範囲外の場合、フォームが無効と判定されることを確認
+    def test_priority_out_of_range_is_invalid(self):
+        form = TaskForm(data={
+            'title': 'Task',
+            'description': '',
+            'status': 'todo',
+            'priority': 6,
+        })
+        assert not form.is_valid()
+        assert 'priority' in form.errors
+
+    # 担当者を指定してフォームを保存すると反映されることを確認
+    def test_save_with_assigned_to(self):
+        user = User.objects.create_user(username='formuser', password='pass12345')
+        form = TaskForm(data={
+            'title': 'Assigned Task',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+            'assigned_to': user.id,
+        })
+        assert form.is_valid()
+        task = form.save()
+        assert task.assigned_to == user
+
+
+@pytest.mark.django_db
+class TestTaskCreateView:
+
+    # GETリクエストでフォームが表示されることを確認
+    def test_get_returns_form(self, client):
+        response = client.get('/tasks/new/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    # 有効なデータでPOSTするとタスクが作成され詳細ページにリダイレクトされることを確認
+    def test_post_valid_data_creates_task_and_redirects(self, client):
+        response = client.post('/tasks/new/', {
+            'title': 'Client Created Task',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        task = Task.objects.get(title='Client Created Task')
+        assert response.status_code == 302
+        assert response.url == f'/tasks/{task.id}/'
+
+    # 無効なデータでPOSTするとフォームが再表示されることを確認
+    def test_post_invalid_data_redisplays_form(self, client):
+        response = client.post('/tasks/new/', {
+            'title': '',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        assert response.status_code == 200
+        assert response.context['form'].is_valid() is False
+
+
+@pytest.mark.django_db
+class TestTaskEditView:
+
+    # GETリクエストで既存タスクの値がフォームに入っていることを確認
+    def test_get_returns_form_with_instance(self, client):
+        task = Task.objects.create(title='Original Title')
+
+        response = client.get(f'/tasks/{task.id}/edit/')
+        assert response.status_code == 200
+        assert response.context['form'].instance == task
+
+    # 有効なデータでPOSTするとタスクが更新され詳細ページにリダイレクトされることを確認
+    def test_post_valid_data_updates_task_and_redirects(self, client):
+        task = Task.objects.create(title='Original Title')
+
+        response = client.post(f'/tasks/{task.id}/edit/', {
+            'title': 'Updated Title',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        task.refresh_from_db()
+        assert task.title == 'Updated Title'
+        assert response.status_code == 302
+        assert response.url == f'/tasks/{task.id}/'
+
+    # 存在しないタスクの場合404が返ることを確認
+    def test_edit_nonexistent_task_returns_404(self, client):
+        response = client.get('/tasks/9999/edit/')
+        assert response.status_code == 404
+
+    # 無効なデータでPOSTするとフォームが再表示されることを確認
+    def test_post_invalid_data_redisplays_form(self, client):
+        task = Task.objects.create(title='Original Title')
+
+        response = client.post(f'/tasks/{task.id}/edit/', {
+            'title': '',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        assert response.status_code == 200
+        assert response.context['form'].is_valid() is False
+
+        task.refresh_from_db()
+        assert task.title == 'Original Title'
+
+
+@pytest.mark.django_db
+class TestTaskDeleteView:
+
+    # GETリクエストで削除確認ページが表示されることを確認
+    def test_get_returns_confirmation_page(self, client):
+        task = Task.objects.create(title='To Delete')
+
+        response = client.get(f'/tasks/{task.id}/delete/')
+        assert response.status_code == 200
+        assert response.context['task'] == task
+
+    # POSTするとタスクが削除され一覧ページにリダイレクトされることを確認
+    def test_post_deletes_task_and_redirects_to_index(self, client):
+        task = Task.objects.create(title='To Delete')
+
+        response = client.post(f'/tasks/{task.id}/delete/')
+
+        assert response.status_code == 302
+        assert response.url == '/tasks/'
+        assert Task.objects.filter(id=task.id).count() == 0
+
+    # 存在しないタスクの場合404が返ることを確認
+    def test_delete_nonexistent_task_returns_404(self, client):
+        response = client.get('/tasks/9999/delete/')
+        assert response.status_code == 404
