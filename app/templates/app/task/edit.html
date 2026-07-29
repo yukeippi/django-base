@@ -8,8 +8,14 @@
 {% endblock %}
 
 {% block content %}
-<h1>タスク編集</h1>
-<a href="{% url 'app:task_show' task.pk %}">詳細に戻る</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">タスク編集</h1>
+    <a href="{% url 'app:task_show' task.pk %}" class="btn btn-outline-secondary">詳細に戻る</a>
+</div>
 
-{% include 'app/task/_form.html' %}
+<div class="card">
+    <div class="card-body">
+        {% include 'app/task/_form.html' %}
+    </div>
+</div>
 {% endblock %}

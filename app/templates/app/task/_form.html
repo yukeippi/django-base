@@ -1,35 +1,37 @@
 <form method="post" id="task-form">
     {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div class="form-field">
-        <label for="{{ form.title.id_for_label }}">タイトル</label>
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="form-field mb-3">
+        <label for="{{ form.title.id_for_label }}" class="form-label">タイトル</label>
         {{ form.title }}
-        {{ form.title.errors }}
+        <div class="text-danger small">{{ form.title.errors }}</div>
     </div>
-    <div class="form-field">
-        <label for="{{ form.description.id_for_label }}">説明</label>
+    <div class="form-field mb-3">
+        <label for="{{ form.description.id_for_label }}" class="form-label">説明</label>
         {{ form.description }}
-        {{ form.description.errors }}
+        <div class="text-danger small">{{ form.description.errors }}</div>
     </div>
-    <div class="form-field">
-        <label for="{{ form.status.id_for_label }}">ステータス</label>
+    <div class="form-field mb-3">
+        <label for="{{ form.status.id_for_label }}" class="form-label">ステータス</label>
         {{ form.status }}
-        {{ form.status.errors }}
+        <div class="text-danger small">{{ form.status.errors }}</div>
     </div>
-    <div class="form-field">
-        <label for="{{ form.priority.id_for_label }}">優先度</label>
+    <div class="form-field mb-3">
+        <label for="{{ form.priority.id_for_label }}" class="form-label">優先度</label>
         {{ form.priority }}
-        {{ form.priority.errors }}
+        <div class="text-danger small">{{ form.priority.errors }}</div>
     </div>
-    <div class="form-field">
-        <label for="{{ form.assigned_to.id_for_label }}">担当者</label>
+    <div class="form-field mb-3">
+        <label for="{{ form.assigned_to.id_for_label }}" class="form-label">担当者</label>
         {{ form.assigned_to }}
-        {{ form.assigned_to.errors }}
+        <div class="text-danger small">{{ form.assigned_to.errors }}</div>
     </div>
-    <div class="form-field">
-        <label for="{{ form.due_date.id_for_label }}">期限</label>
+    <div class="form-field mb-3">
+        <label for="{{ form.due_date.id_for_label }}" class="form-label">期限</label>
         {{ form.due_date }}
-        {{ form.due_date.errors }}
+        <div class="text-danger small">{{ form.due_date.errors }}</div>
     </div>
-    <button type="submit" id="task-form-submit">保存</button>
+    <button type="submit" id="task-form-submit" class="btn btn-primary">保存</button>
 </form>

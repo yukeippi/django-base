@@ -9,11 +9,16 @@
 
 {% block content %}
 <h1>タスクを削除しますか?</h1>
-<p id="delete-task-title">{{ task.title }}</p>
 
-<form method="post" id="task-delete-form">
-    {% csrf_token %}
-    <button type="submit" id="task-delete-confirm">削除する</button>
-</form>
-<a href="{% url 'app:task_show' task.pk %}">キャンセル</a>
+<div class="card">
+    <div class="card-body">
+        <p id="delete-task-title" class="fs-5">{{ task.title }}</p>
+
+        <form method="post" id="task-delete-form" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" id="task-delete-confirm" class="btn btn-danger">削除する</button>
+        </form>
+        <a href="{% url 'app:task_show' task.pk %}" class="btn btn-outline-secondary">キャンセル</a>
+    </div>
+</div>
 {% endblock %}
