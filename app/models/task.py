@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from app.validators import ContainsCharacterValidator
 
 
 # タスク管理のためのサンプルモデル
@@ -12,7 +13,13 @@ class Task(models.Model):
     ]
 
     title = models.CharField(max_length=200, verbose_name='タイトル')
-    description = models.TextField(blank=True, verbose_name='説明')
+    # サンプル: 自作の(__call__を実装した)カスタムバリデータクラスを使う例。
+    # 説明を入力する場合は、関連するIssue番号(#123のような形式)を含めることを求める。
+    description = models.TextField(
+        blank=True,
+        verbose_name='説明',
+        validators=[ContainsCharacterValidator('#', message='説明には関連するIssue番号(例: #123)を含めてください。')],
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

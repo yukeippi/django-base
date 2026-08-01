@@ -36,8 +36,9 @@ app/             メインアプリケーション
 ├── static/app/      アプリ固有の静的ファイル
 │   └── task.css
 ├── templates/
-│   ├── base/            共通レイアウト
-│   │   └── base.html
+│   ├── layouts/         共通レイアウト
+│   │   └── default.html
+│   ├── common/          appアプリ内で共有するパーシャルテンプレート (_navbar.html, _messages.html)
 │   └── app/
 │       ├── index.html
 │       └── task/        モデルごとのテンプレート (index/show/new/edit)

@@ -26,28 +26,16 @@ def show(request, pk):
 # タスク新規作成
 def new(request):
     if request.method == 'POST':
-        form = TaskForm(request.POST)
-        if form.is_valid():
-            task = form.save()
-            messages.success(request, 'タスクを作成しました。')
-            return redirect('app:task_show', pk=task.pk)
-    else:
-        form = TaskForm()
-    return render(request, 'app/task/new.html', {'form': form})
+        return _create_task(request)
+    return _display_new_form(request)
 
 
 # タスク編集
 def edit(request, pk):
     task = get_object_or_404(Task, pk=pk)
     if request.method == 'POST':
-        form = TaskForm(request.POST, instance=task)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'タスクを更新しました。')
-            return redirect('app:task_show', pk=task.pk)
-    else:
-        form = TaskForm(instance=task)
-    return render(request, 'app/task/edit.html', {'form': form, 'task': task})
+        return _update_task(request, task)
+    return _display_edit_form(request, task)
 
 
 # タスク削除
@@ -66,3 +54,50 @@ def api(request):
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
         return JsonResponse(list(tasks), safe=False)
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+# ============================================================
+# ここから先はprivateヘルパー
+# ============================================================
+
+
+# 新規作成フォームを表示する
+def _display_new_form(request):
+    form = TaskForm()
+    return _render_new_form(request, form)
+
+
+# タスクの新規作成処理を行う
+def _create_task(request):
+    form = TaskForm(request.POST)
+    if form.is_valid():
+        task = form.save()
+        messages.success(request, 'タスクを作成しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_new_form(request, form)
+
+
+# タスク新規作成フォームのレンダリング
+def _render_new_form(request, form):
+    return render(request, 'app/task/new.html', {'form': form})
+
+
+# 編集フォームを表示する
+def _display_edit_form(request, task):
+    form = TaskForm(instance=task)
+    return _render_edit_form(request, task, form)
+
+
+# タスクの更新処理を行う
+def _update_task(request, task):
+    form = TaskForm(request.POST, instance=task)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'タスクを更新しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_edit_form(request, task, form)
+
+
+# タスク編集フォームのレンダリング
+def _render_edit_form(request, task, form):
+    return render(request, 'app/task/edit.html', {'form': form, 'task': task})

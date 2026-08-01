@@ -1,4 +1,4 @@
-{% extends 'base/base.html' %}
+{% extends 'layouts/default.html' %}
 {% load static %}
 
 {% block title %}{{ task.title }}{% endblock %}
@@ -8,31 +8,37 @@
 {% endblock %}
 
 {% block content %}
-<h1 id="task-title">{{ task.title }}</h1>
-<a href="{% url 'app:task_index' %}">一覧に戻る</a>
-<a href="{% url 'app:task_edit' task.pk %}" id="edit-task-link">編集</a>
-<a href="{% url 'app:task_delete' task.pk %}" id="delete-task-link">削除</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 id="task-title" class="mb-0">{{ task.title }}</h1>
+    <div>
+        <a href="{% url 'app:task_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+        <a href="{% url 'app:task_edit' task.pk %}" id="edit-task-link" class="btn btn-primary">編集</a>
+        <a href="{% url 'app:task_delete' task.pk %}" id="delete-task-link" class="btn btn-danger">削除</a>
+    </div>
+</div>
 
-<div class="task-detail">
-    <div class="task-field">
-        <label>説明:</label>
-        <p id="task-description">{{ task.description|default:"なし" }}</p>
-    </div>
-    <div class="task-field">
-        <label>ステータス:</label>
-        <p id="task-status">{{ task.get_status_display }}</p>
-    </div>
-    <div class="task-field">
-        <label>優先度:</label>
-        <p id="task-priority">{{ task.priority }}</p>
-    </div>
-    <div class="task-field">
-        <label>担当者:</label>
-        <p id="task-assigned">{{ task.assigned_to|default:"未割り当て" }}</p>
-    </div>
-    <div class="task-field">
-        <label>期限:</label>
-        <p id="task-due-date">{{ task.due_date|date:"Y-m-d"|default:"なし" }}</p>
+<div class="task-detail card">
+    <div class="card-body">
+        <div class="task-field mb-3">
+            <label class="form-label fw-bold">説明:</label>
+            <p id="task-description">{{ task.description|default:"なし" }}</p>
+        </div>
+        <div class="task-field mb-3">
+            <label class="form-label fw-bold">ステータス:</label>
+            <p id="task-status">{{ task.get_status_display }}</p>
+        </div>
+        <div class="task-field mb-3">
+            <label class="form-label fw-bold">優先度:</label>
+            <p id="task-priority">{{ task.priority }}</p>
+        </div>
+        <div class="task-field mb-3">
+            <label class="form-label fw-bold">担当者:</label>
+            <p id="task-assigned">{{ task.assigned_to|default:"未割り当て" }}</p>
+        </div>
+        <div class="task-field mb-0">
+            <label class="form-label fw-bold">期限:</label>
+            <p id="task-due-date">{{ task.due_date|date:"Y-m-d"|default:"なし" }}</p>
+        </div>
     </div>
 </div>
 {% endblock %}

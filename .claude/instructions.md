@@ -12,14 +12,42 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 各ディレクトリに__init__.pyを配置すること。
 
+## Layout Rules
+
+もっとも低レイヤーの共通テンプレート(全ページの土台となるレイアウト)は `templates/layouts/` ディレクトリに置く。既定のレイアウトファイル名は `default.html` とする。将来的に別のレイアウトが必要になった場合は `layouts/admin.html` のように用途名を付けたファイルを追加する。
+
+レイアウト本体はHTMLの骨格(`<head>`の共通アセット読み込みと`{% block %}`)だけにとどめ、極力コンパクトに保つ。ナビゲーションバーやフラッシュメッセージ表示のような、ページ間で共通だが内容として独立した部品は、レイアウトに直書きせず `app/templates/common/` 配下のパーシャル(`_navbar.html`, `_messages.html` など)に切り出し、レイアウトから `{% include %}` で読み込む(置き場所の考え方は下記Common Module Rulesを参照)。
+
+### Example
+
+```
+app/templates/layouts/
+└── default.html       # 骨格のみ。{% include %}で各パーシャルを読み込む
+
+app/templates/common/
+├── _navbar.html        # ナビゲーションバー
+└── _messages.html      # フラッシュメッセージ表示
+```
+
+```html
+<!-- layouts/default.html -->
+<body>
+    {% include 'common/_navbar.html' %}
+    <div class="container">
+        {% include 'common/_messages.html' %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+```
+
 ## Template Rules
 
-`base/base.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
+`layouts/default.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
 
 ### Example
 
 ```html
-{% extends 'base/base.html' %}
+{% extends 'layouts/default.html' %}
 
 {% block title %}記事一覧{% endblock %}
 
@@ -112,6 +140,86 @@ urlpatterns = [
 ]
 ```
 
+## View Method-Branch Rules
+
+CBVを使わずFBVを選んでいるのは、Railsのコントローラーのように「1つの関数の中で自分がすべて制御している」明示性を保つため。ただし`request.method`でGET/POSTを分岐する関数が肥大化しやすいので、以下のルールで整理する。
+
+- **分岐関数は振り分けだけにする**: `new`/`edit`のようにGET/POSTで処理が変わる関数は、分岐と委譲だけを行う薄い実装にする。実際の処理はprivateヘルパー関数(`_`始まり)に切り出す。
+- **ヘルパー名は処理内容で付ける**: `_edit_get`/`_edit_post`のようにHTTPメソッド名をそのまま使う命名は避ける。中身を見なくても分岐関数を読むだけで何をしているか分かるよう、`_display_edit_form`/`_update_task`のように行う処理そのもので名付ける。
+- **ファイル内の並び順**: モデルの公開アクション(`index`/`show`/`new`/`edit`/`delete`など)をファイル上部にまとめて書き、ファイル全体を見ればそのビューが持つアクション一覧が把握できるようにする。その下に区切りコメントを置き、privateヘルパーをまとめて配置する。
+
+### Example
+
+```python
+# app/views/task.py
+
+# タスク編集
+def edit(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if request.method == 'POST':
+        return _update_task(request, task)
+    return _display_edit_form(request, task)
+
+
+# (他の公開アクションが続く)
+
+
+# ============================================================
+# ここから先はprivateヘルパー
+# ============================================================
+
+
+# 編集フォームを表示する
+def _display_edit_form(request, task):
+    form = TaskForm(instance=task)
+    return _render_edit_form(request, task, form)
+
+
+# タスクの更新処理を行う
+def _update_task(request, task):
+    form = TaskForm(request.POST, instance=task)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'タスクを更新しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_edit_form(request, task, form)
+
+
+# タスク編集フォームのレンダリング
+def _render_edit_form(request, task, form):
+    return render(request, 'app/task/edit.html', {'form': form, 'task': task})
+```
+
+## Control Flow Rules
+
+`if`のネストを深くしない。条件が成立しない場合や異常系は早期に`return`し、`else`で包まずインデントを1段に保つ(ガード節/早期return)。ビューに限らず、モデル・フォーム・共有モジュールなど全てのPythonコードに適用する。
+
+### Example
+
+```python
+# 避ける書き方(ネストが深い)
+def _create_task(request):
+    if request.method == 'POST':
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save()
+            messages.success(request, 'タスクを作成しました。')
+            return redirect('app:task_show', pk=task.pk)
+        else:
+            return _render_new_form(request, form)
+    else:
+        return _render_new_form(request, TaskForm())
+
+# 良い書き方(早期returnでネストを浅く保つ)
+def _create_task(request):
+    form = TaskForm(request.POST)
+    if form.is_valid():
+        task = form.save()
+        messages.success(request, 'タスクを作成しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_new_form(request, form)
+```
+
 ## Partial Template Rules
 
 Djangoにはpartialに関するネーミング規則が無いため、Railsに倣い、`{% include %}` で読み込むパーシャルテンプレートのファイル名の先頭には `_` を付ける。
@@ -153,10 +261,10 @@ static/
 
 ### 読み込み方法
 
-`base.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
+`layouts/default.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
 
 ```html
-<!-- base.html -->
+<!-- layouts/default.html -->
 <link rel="stylesheet" href="{% static 'common.css' %}">
 {% block extra_css %}{% endblock %}
 
@@ -168,19 +276,61 @@ static/
 
 ## Common Module Rules
 
-共有モジュールは、共有する範囲によって置き場所を分ける。
+共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。
+- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。ナビゲーションバーやフラッシュメッセージ表示のような、特定のモデルに属さないがそのアプリ内では共通のパーシャルテンプレートも同様に、`app/templates/common/` に置く(例: `_navbar.html`, `_messages.html`)。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。
 
 ```
 config/
 app/
-common/          # 複数アプリ間で共有するモジュール
+├── templates/
+│   └── common/              # appアプリ内で共有するパーシャルテンプレート
+│       ├── _navbar.html
+│       └── _messages.html
+common/                    # 複数アプリ間で共有するモジュール
 ├── __init__.py
 ├── auth.py
 ├── utils.py
 └── mixins.py
+```
+
+## Validator Rules
+
+モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/validators.py` に置く(増えてきたら `app/utils/` と同様に `app/validators/` ディレクトリ化する)。
+
+- **単純な条件で使い回さない場合**: ただの関数で書く。値を1つ受け取り、不正なら`django.core.exceptions.ValidationError`を送出するだけでよい。
+- **パラメータ化して複数箇所で使い回したい場合**: `__call__(self, value)` を実装したクラスにする(Rails の `ActiveModel::EachValidator` に相当)。インスタンス化時の引数で条件をカスタマイズできる。
+- **クラスにする場合は必ず `@deconstructible` を付ける**: モデルフィールドの `validators=[...]` に渡すインスタンスは、マイグレーションファイルにシリアライズ(Pythonコードとして書き出し)できる必要がある。`django.utils.deconstruct.deconstructible` を付けないと `makemigrations` が `ValueError: Cannot serialize` で失敗する。
+
+### Example
+
+```python
+# app/validators.py
+from django.core.exceptions import ValidationError
+from django.utils.deconstruct import deconstructible
+
+
+# 指定した文字を含むことを要求するバリデータ
+@deconstructible
+class ContainsCharacterValidator:
+    def __init__(self, character, message=None):
+        self.character = character
+        self.message = message or f'{character}を含めてください。'
+
+    def __call__(self, value):
+        if self.character not in value:
+            raise ValidationError(self.message)
+```
+
+```python
+# app/models/task.py
+from app.validators import ContainsCharacterValidator
+
+description = models.TextField(
+    blank=True,
+    validators=[ContainsCharacterValidator('#', message='説明には関連するIssue番号(例: #123)を含めてください。')],
+)
 ```
 
 ## Mixin/Base Naming Rules

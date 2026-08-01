@@ -1,4 +1,4 @@
-{% extends 'base/base.html' %}
+{% extends 'layouts/default.html' %}
 {% load static %}
 
 {% block title %}タスク新規作成{% endblock %}
@@ -8,8 +8,14 @@
 {% endblock %}
 
 {% block content %}
-<h1>タスク新規作成</h1>
-<a href="{% url 'app:task_index' %}">一覧に戻る</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">タスク新規作成</h1>
+    <a href="{% url 'app:task_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+</div>
 
-{% include 'app/task/_form.html' %}
+<div class="card">
+    <div class="card-body">
+        {% include 'app/task/_form.html' %}
+    </div>
+</div>
 {% endblock %}
