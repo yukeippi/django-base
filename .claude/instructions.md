@@ -16,10 +16,28 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 もっとも低レイヤーの共通テンプレート(全ページの土台となるレイアウト)は `templates/layouts/` ディレクトリに置く。既定のレイアウトファイル名は `default.html` とする。将来的に別のレイアウトが必要になった場合は `layouts/admin.html` のように用途名を付けたファイルを追加する。
 
+レイアウト本体はHTMLの骨格(`<head>`の共通アセット読み込みと`{% block %}`)だけにとどめ、極力コンパクトに保つ。ナビゲーションバーやフラッシュメッセージ表示のような、ページ間で共通だが内容として独立した部品は、レイアウトに直書きせず `app/templates/common/` 配下のパーシャル(`_navbar.html`, `_messages.html` など)に切り出し、レイアウトから `{% include %}` で読み込む(置き場所の考え方は下記Common Module Rulesを参照)。
+
 ### Example
 
 ```
-templates/layouts/default.html
+app/templates/layouts/
+└── default.html       # 骨格のみ。{% include %}で各パーシャルを読み込む
+
+app/templates/common/
+├── _navbar.html        # ナビゲーションバー
+└── _messages.html      # フラッシュメッセージ表示
+```
+
+```html
+<!-- layouts/default.html -->
+<body>
+    {% include 'common/_navbar.html' %}
+    <div class="container">
+        {% include 'common/_messages.html' %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
 ```
 
 ## Template Rules
@@ -178,15 +196,19 @@ static/
 
 ## Common Module Rules
 
-共有モジュールは、共有する範囲によって置き場所を分ける。
+共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。
+- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。ナビゲーションバーやフラッシュメッセージ表示のような、特定のモデルに属さないがそのアプリ内では共通のパーシャルテンプレートも同様に、`app/templates/common/` に置く(例: `_navbar.html`, `_messages.html`)。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。
 
 ```
 config/
 app/
-common/          # 複数アプリ間で共有するモジュール
+├── templates/
+│   └── common/              # appアプリ内で共有するパーシャルテンプレート
+│       ├── _navbar.html
+│       └── _messages.html
+common/                    # 複数アプリ間で共有するモジュール
 ├── __init__.py
 ├── auth.py
 ├── utils.py

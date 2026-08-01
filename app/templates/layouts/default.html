@@ -10,25 +10,9 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'app:index' %}">Task Manager</a>
-            <div class="navbar-nav">
-                <a class="nav-link" href="{% url 'app:task_index' %}">タスク一覧</a>
-            </div>
-        </div>
-    </nav>
+    {% include 'common/_navbar.html' %}
     <div class="container">
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message.message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+        {% include 'common/_messages.html' %}
         {% block content %}{% endblock %}
     </div>
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

@@ -38,6 +38,7 @@ app/             メインアプリケーション
 ├── templates/
 │   ├── layouts/         共通レイアウト
 │   │   └── default.html
+│   ├── common/          appアプリ内で共有するパーシャルテンプレート (_navbar.html, _messages.html)
 │   └── app/
 │       ├── index.html
 │       └── task/        モデルごとのテンプレート (index/show/new/edit)
