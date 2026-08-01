@@ -190,6 +190,36 @@ def _render_edit_form(request, task, form):
     return render(request, 'app/task/edit.html', {'form': form, 'task': task})
 ```
 
+## Control Flow Rules
+
+`if`のネストを深くしない。条件が成立しない場合や異常系は早期に`return`し、`else`で包まずインデントを1段に保つ(ガード節/早期return)。ビューに限らず、モデル・フォーム・共有モジュールなど全てのPythonコードに適用する。
+
+### Example
+
+```python
+# 避ける書き方(ネストが深い)
+def _create_task(request):
+    if request.method == 'POST':
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save()
+            messages.success(request, 'タスクを作成しました。')
+            return redirect('app:task_show', pk=task.pk)
+        else:
+            return _render_new_form(request, form)
+    else:
+        return _render_new_form(request, TaskForm())
+
+# 良い書き方(早期returnでネストを浅く保つ)
+def _create_task(request):
+    form = TaskForm(request.POST)
+    if form.is_valid():
+        task = form.save()
+        messages.success(request, 'タスクを作成しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_new_form(request, form)
+```
+
 ## Partial Template Rules
 
 Djangoにはpartialに関するネーミング規則が無いため、Railsに倣い、`{% include %}` で読み込むパーシャルテンプレートのファイル名の先頭には `_` を付ける。
