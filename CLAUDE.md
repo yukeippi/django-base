@@ -45,9 +45,12 @@ app/             メインアプリケーション
 │           ├── index.html
 │           └── show.html
 └── tests/
-    ├── unit/        ユニットテスト(モデルごとにファイル分割)
+    ├── unit/        ユニットテスト(models/forms/viewsのレイヤーごとにディレクトリ分割し、その中でモデルごとにファイル分割)
+    │   ├── models/
+    │   ├── forms/
+    │   └── views/
     └── e2e/         E2Eテスト(Playwright、機能ごとにファイル分割)
-common/          複数アプリ間で共有するモジュール (auth.py, utils.py, mixins.py)
+common/          複数アプリ間で共有するモジュール (utils.py, mixins.py)
 static/          プロジェクト全体の共通静的ファイル
 └── common.css
 ```
