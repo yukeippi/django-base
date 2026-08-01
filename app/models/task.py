@@ -39,6 +39,14 @@ class Task(models.Model):
         related_name='tasks',
         verbose_name='担当者'
     )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_tasks',
+        verbose_name='作成者'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
     due_date = models.DateField(null=True, blank=True, verbose_name='期限')

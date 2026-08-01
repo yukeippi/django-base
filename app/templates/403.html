@@ -1,0 +1,10 @@
+{% extends 'layouts/default.html' %}
+
+{% block title %}権限がありません{% endblock %}
+
+{% block content %}
+<div class="alert alert-danger" id="permission-denied-message">
+    このタスクを操作する権限がありません。
+</div>
+<a href="{% url 'app:task_index' %}" class="btn btn-outline-secondary">タスク一覧に戻る</a>
+{% endblock %}

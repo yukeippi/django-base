@@ -25,3 +25,32 @@ def sample_user(db):
         email='test@example.com',
         password='testpass123'
     )
+
+
+# 別ユーザー(権限チェックで「本人ではない一般ユーザー」として使う)を作成するフィクスチャ
+@pytest.fixture
+def other_user(db):
+    from django.contrib.auth.models import User
+    return User.objects.create_user(
+        username='otheruser',
+        email='other@example.com',
+        password='otherpass123'
+    )
+
+
+# sample_userでログイン済みのクライアントを返すフィクスチャ
+@pytest.fixture
+def auth_client(sample_user):
+    from django.test import Client
+    client = Client()
+    client.force_login(sample_user)
+    return client
+
+
+# other_userでログイン済みのクライアントを返すフィクスチャ(auth_clientとは別セッション)
+@pytest.fixture
+def other_auth_client(other_user):
+    from django.test import Client
+    client = Client()
+    client.force_login(other_user)
+    return client

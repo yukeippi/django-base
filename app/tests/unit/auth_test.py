@@ -1,0 +1,103 @@
+import pytest
+from app.auth import can_delete_task, can_edit_task, is_admin
+from app.models import Task
+
+
+# ログインビューのテストクラス
+@pytest.mark.django_db
+class TestLoginView:
+
+    # GETリクエストでログインフォームが表示されることを確認
+    def test_get_returns_form(self, client):
+        response = client.get('/login/')
+        assert response.status_code == 200
+        assert 'form' in response.context
+
+    # 正しい認証情報でログインするとタスク一覧にリダイレクトされることを確認
+    def test_post_valid_credentials_logs_in_and_redirects(self, client, sample_user):
+        response = client.post('/login/', {
+            'username': 'testuser',
+            'password': 'testpass123',
+        })
+
+        assert response.status_code == 302
+        assert response.url == '/tasks/'
+        assert response.wsgi_request.user.is_anonymous is False
+
+    # 誤った認証情報の場合、ログインできずフォームが再表示されることを確認
+    def test_post_invalid_credentials_redisplays_form(self, client, sample_user):
+        response = client.post('/login/', {
+            'username': 'testuser',
+            'password': 'wrongpassword',
+        })
+
+        assert response.status_code == 200
+        assert response.context['form'].is_valid() is False
+
+
+# ログアウトビューのテストクラス
+@pytest.mark.django_db
+class TestLogoutView:
+
+    # POSTするとログアウトされ、ログインページにリダイレクトされることを確認
+    def test_post_logs_out_and_redirects(self, auth_client):
+        response = auth_client.post('/logout/')
+
+        assert response.status_code == 302
+        assert response.url == '/login/'
+
+        # ログアウト後はタスク一覧にアクセスするとログインページにリダイレクトされる
+        response = auth_client.get('/tasks/')
+        assert response.status_code == 302
+        assert response.url.startswith('/login/')
+
+
+# app/auth.pyの権限判定ロジックのテストクラス
+@pytest.mark.django_db
+class TestIsAdmin:
+
+    # is_staffがTrueのユーザーは管理者と判定されることを確認
+    def test_staff_user_is_admin(self, admin_user):
+        assert is_admin(admin_user) is True
+
+    # is_staffがFalseのユーザーは管理者ではないと判定されることを確認
+    def test_regular_user_is_not_admin(self, sample_user):
+        assert is_admin(sample_user) is False
+
+
+@pytest.mark.django_db
+class TestCanEditTask:
+
+    # 作成者本人は編集可能と判定されることを確認
+    def test_creator_can_edit(self, sample_user):
+        task = Task.objects.create(title='Task', created_by=sample_user)
+        assert can_edit_task(sample_user, task) is True
+
+    # 担当者本人は編集可能と判定されることを確認
+    def test_assignee_can_edit(self, sample_user):
+        task = Task.objects.create(title='Task', assigned_to=sample_user)
+        assert can_edit_task(sample_user, task) is True
+
+    # 管理者はどのタスクでも編集可能と判定されることを確認
+    def test_admin_can_edit_any_task(self, admin_user, other_user):
+        task = Task.objects.create(title='Task', created_by=other_user)
+        assert can_edit_task(admin_user, task) is True
+
+    # 作成者でも担当者でも管理者でもないユーザーは編集不可と判定されることを確認
+    def test_unrelated_user_cannot_edit(self, sample_user, other_user):
+        task = Task.objects.create(title='Task', created_by=other_user)
+        assert can_edit_task(sample_user, task) is False
+
+
+@pytest.mark.django_db
+class TestCanDeleteTask:
+
+    # 作成者本人は削除可能と判定されることを確認
+    def test_creator_can_delete(self, sample_user):
+        task = Task.objects.create(title='Task', created_by=sample_user)
+        assert can_delete_task(sample_user, task) is True
+
+    # 作成者でも担当者でも管理者でもないユーザーは削除不可と判定されることを確認
+    def test_unrelated_user_cannot_delete(self, sample_user, other_user):
+        task = Task.objects.create(title='Task', created_by=other_user)
+        assert can_delete_task(sample_user, task) is False

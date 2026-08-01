@@ -1,12 +1,16 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from app.forms import TaskForm
 from app.models import Task
+from app.auth import can_delete_task, can_edit_task
 
 
 # タスク一覧
+@login_required
 def index(request):
     tasks_qs = Task.objects.all()
     paginator = Paginator(tasks_qs, 10)
@@ -18,12 +22,18 @@ def index(request):
 
 
 # タスク詳細
+@login_required
 def show(request, pk):
     task = get_object_or_404(Task, pk=pk)
-    return render(request, 'app/task/show.html', {'task': task})
+    return render(request, 'app/task/show.html', {
+        'task': task,
+        'can_edit': can_edit_task(request.user, task),
+        'can_delete': can_delete_task(request.user, task),
+    })
 
 
 # タスク新規作成
+@login_required
 def new(request):
     if request.method == 'POST':
         return _create_task(request)
@@ -31,16 +41,22 @@ def new(request):
 
 
 # タスク編集
+@login_required
 def edit(request, pk):
     task = get_object_or_404(Task, pk=pk)
+    if not can_edit_task(request.user, task):
+        raise PermissionDenied
     if request.method == 'POST':
         return _update_task(request, task)
     return _display_edit_form(request, task)
 
 
 # タスク削除
+@login_required
 def delete(request, pk):
     task = get_object_or_404(Task, pk=pk)
+    if not can_delete_task(request.user, task):
+        raise PermissionDenied
     if request.method == 'POST':
         task.delete()
         messages.success(request, 'タスクを削除しました。')
@@ -49,6 +65,7 @@ def delete(request, pk):
 
 
 # タスクAPI(E2Eテスト用)
+@login_required
 def api(request):
     if request.method == 'GET':
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
@@ -71,7 +88,9 @@ def _display_new_form(request):
 def _create_task(request):
     form = TaskForm(request.POST)
     if form.is_valid():
-        task = form.save()
+        task = form.save(commit=False)
+        task.created_by = request.user
+        task.save()
         messages.success(request, 'タスクを作成しました。')
         return redirect('app:task_show', pk=task.pk)
     return _render_new_form(request, form)

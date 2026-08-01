@@ -1,8 +1,21 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
         <a class="navbar-brand" href="{% url 'app:index' %}">Task Manager</a>
-        <div class="navbar-nav">
+        <div class="navbar-nav me-auto">
+            {% if user.is_authenticated %}
             <a class="nav-link" href="{% url 'app:task_index' %}">タスク一覧</a>
+            {% endif %}
+        </div>
+        <div class="navbar-nav">
+            {% if user.is_authenticated %}
+            <span class="nav-link text-light" id="current-username">{{ user.username }}{% if user.is_staff %}(管理者){% endif %}</span>
+            <form method="post" action="{% url 'app:logout' %}" class="d-flex">
+                {% csrf_token %}
+                <button type="submit" id="logout-button" class="btn btn-outline-light btn-sm">ログアウト</button>
+            </form>
+            {% else %}
+            <a class="nav-link" id="login-link" href="{% url 'app:login' %}">ログイン</a>
+            {% endif %}
         </div>
     </div>
 </nav>

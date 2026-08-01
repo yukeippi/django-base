@@ -18,15 +18,15 @@ class TestHomePage:
         tasks_link = page.locator('#tasks-link')
         expect(tasks_link).to_be_visible()
 
-    # タスク一覧ページへのナビゲーションが機能することを確認
-    def test_navigation_to_task_list(self, page: Page, live_server_url):
-        page.goto(live_server_url)
+    # タスク一覧ページへのナビゲーションが機能することを確認(ログイン済みユーザーの場合)
+    def test_navigation_to_task_list(self, logged_in_page: Page, live_server_url):
+        logged_in_page.goto(live_server_url)
 
         # タスク一覧リンクをクリック
-        page.click('#tasks-link')
+        logged_in_page.click('#tasks-link')
 
         # URLが変わったことを確認
-        expect(page).to_have_url(f'{live_server_url}/tasks/')
+        expect(logged_in_page).to_have_url(f'{live_server_url}/tasks/')
 
 
 # レスポンシブデザインのE2Eテスト
