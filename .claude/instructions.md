@@ -295,6 +295,44 @@ common/                    # 複数アプリ間で共有するモジュール
 └── mixins.py
 ```
 
+## Validator Rules
+
+モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/validators.py` に置く(増えてきたら `app/utils/` と同様に `app/validators/` ディレクトリ化する)。
+
+- **単純な条件で使い回さない場合**: ただの関数で書く。値を1つ受け取り、不正なら`django.core.exceptions.ValidationError`を送出するだけでよい。
+- **パラメータ化して複数箇所で使い回したい場合**: `__call__(self, value)` を実装したクラスにする(Rails の `ActiveModel::EachValidator` に相当)。インスタンス化時の引数で条件をカスタマイズできる。
+- **クラスにする場合は必ず `@deconstructible` を付ける**: モデルフィールドの `validators=[...]` に渡すインスタンスは、マイグレーションファイルにシリアライズ(Pythonコードとして書き出し)できる必要がある。`django.utils.deconstruct.deconstructible` を付けないと `makemigrations` が `ValueError: Cannot serialize` で失敗する。
+
+### Example
+
+```python
+# app/validators.py
+from django.core.exceptions import ValidationError
+from django.utils.deconstruct import deconstructible
+
+
+# 指定した文字を含むことを要求するバリデータ
+@deconstructible
+class ContainsCharacterValidator:
+    def __init__(self, character, message=None):
+        self.character = character
+        self.message = message or f'{character}を含めてください。'
+
+    def __call__(self, value):
+        if self.character not in value:
+            raise ValidationError(self.message)
+```
+
+```python
+# app/models/task.py
+from app.validators import ContainsCharacterValidator
+
+description = models.TextField(
+    blank=True,
+    validators=[ContainsCharacterValidator('#', message='説明には関連するIssue番号(例: #123)を含めてください。')],
+)
+```
+
 ## Mixin/Base Naming Rules
 
 多重継承に使うクラスは、役割によって名前の末尾を使い分ける。
