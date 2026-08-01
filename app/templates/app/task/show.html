@@ -12,8 +12,12 @@
     <h1 id="task-title" class="mb-0">{{ task.title }}</h1>
     <div>
         <a href="{% url 'app:task_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+        {% if can_edit %}
         <a href="{% url 'app:task_edit' task.pk %}" id="edit-task-link" class="btn btn-primary">編集</a>
+        {% endif %}
+        {% if can_delete %}
         <a href="{% url 'app:task_delete' task.pk %}" id="delete-task-link" class="btn btn-danger">削除</a>
+        {% endif %}
     </div>
 </div>
 
@@ -34,6 +38,10 @@
         <div class="task-field mb-3">
             <label class="form-label fw-bold">担当者:</label>
             <p id="task-assigned">{{ task.assigned_to|default:"未割り当て" }}</p>
+        </div>
+        <div class="task-field mb-3">
+            <label class="form-label fw-bold">作成者:</label>
+            <p id="task-created-by">{{ task.created_by|default:"不明" }}</p>
         </div>
         <div class="task-field mb-0">
             <label class="form-label fw-bold">期限:</label>

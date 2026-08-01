@@ -16,19 +16,32 @@ def live_server_url(live_server):
     return live_server.url
 
 
-# E2Eテスト用のテストデータをセットアップ
+# E2Eテスト用のユーザーを作成するフィクスチャ
 @pytest.fixture(scope='function')
-def setup_test_data(db):
+def e2e_user(db):
     from django.contrib.auth.models import User
-    from app.models import Task
-    from datetime import date, timedelta
-
-    # ユーザーを作成
-    user = User.objects.create_user(
+    return User.objects.create_user(
         username='e2euser',
         email='e2e@example.com',
         password='e2epass123'
     )
+
+
+# ブラウザ上でログインフォームを操作し、e2e_userとしてログイン済みの状態にするフィクスチャ
+@pytest.fixture(scope='function')
+def logged_in_page(page, live_server_url, e2e_user):
+    page.goto(f'{live_server_url}/login/')
+    page.fill('#id_username', 'e2euser')
+    page.fill('#id_password', 'e2epass123')
+    page.click('#login-submit')
+    return page
+
+
+# E2Eテスト用のサンプルタスクをセットアップ(e2e_userでログイン済みの状態と合わせて使う想定)
+@pytest.fixture(scope='function')
+def setup_test_data(e2e_user):
+    from app.models import Task
+    from datetime import date, timedelta
 
     # サンプルタスクを作成
     Task.objects.create(
@@ -36,7 +49,8 @@ def setup_test_data(db):
         description='This is a test task for E2E testing',
         status='todo',
         priority=1,
-        assigned_to=user
+        assigned_to=e2e_user,
+        created_by=e2e_user,
     )
 
     Task.objects.create(
@@ -44,7 +58,8 @@ def setup_test_data(db):
         description='Another test task',
         status='in_progress',
         priority=2,
-        assigned_to=user,
+        assigned_to=e2e_user,
+        created_by=e2e_user,
         due_date=date.today() + timedelta(days=7)
     )
 
@@ -52,10 +67,11 @@ def setup_test_data(db):
         title='E2E Test Task 3',
         description='Completed task',
         status='done',
-        priority=3
+        priority=3,
+        created_by=e2e_user,
     )
 
     return {
-        'user': user,
+        'user': e2e_user,
         'task_count': 3
     }

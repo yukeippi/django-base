@@ -5,6 +5,8 @@ app_name = 'app'
 
 urlpatterns = [
     path('', views.home.index, name='index'),
+    path('login/', views.auth.login, name='login'),
+    path('logout/', views.auth.logout, name='logout'),
     path('tasks/', views.task.index, name='task_index'),
     path('tasks/new/', views.task.new, name='task_new'),
     path('tasks/<int:pk>/', views.task.show, name='task_show'),

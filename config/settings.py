@@ -125,6 +125,11 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
+# 認証関連の設定
+LOGIN_URL = 'app:login'
+LOGIN_REDIRECT_URL = 'app:task_index'
+
+
 # django.contrib.messages のタグをBootstrapのalertクラスに合わせる
 from django.contrib.messages import constants as message_constants
 
