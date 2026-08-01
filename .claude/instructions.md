@@ -7,10 +7,14 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 ### Examples
 - models/todo.py
 - views/todo.py
-- tests/unit/todo_test.py
+- tests/unit/models/todo_test.py
+- tests/unit/forms/todo_test.py
+- tests/unit/views/todo_test.py
 - tests/e2e/todo_test.py
 
 各ディレクトリに__init__.pyを配置すること。
+
+`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/auth.py`や`app/validators.py`のように、特定のレイヤーディレクトリに属さない単発モジュールのテストは、`tests/unit/`直下に置く(例: `tests/unit/auth_test.py`, `tests/unit/validators_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
 
 ## Layout Rules
 
