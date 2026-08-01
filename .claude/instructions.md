@@ -140,6 +140,56 @@ urlpatterns = [
 ]
 ```
 
+## View Method-Branch Rules
+
+CBVを使わずFBVを選んでいるのは、Railsのコントローラーのように「1つの関数の中で自分がすべて制御している」明示性を保つため。ただし`request.method`でGET/POSTを分岐する関数が肥大化しやすいので、以下のルールで整理する。
+
+- **分岐関数は振り分けだけにする**: `new`/`edit`のようにGET/POSTで処理が変わる関数は、分岐と委譲だけを行う薄い実装にする。実際の処理はprivateヘルパー関数(`_`始まり)に切り出す。
+- **ヘルパー名は処理内容で付ける**: `_edit_get`/`_edit_post`のようにHTTPメソッド名をそのまま使う命名は避ける。中身を見なくても分岐関数を読むだけで何をしているか分かるよう、`_display_edit_form`/`_update_task`のように行う処理そのもので名付ける。
+- **ファイル内の並び順**: モデルの公開アクション(`index`/`show`/`new`/`edit`/`delete`など)をファイル上部にまとめて書き、ファイル全体を見ればそのビューが持つアクション一覧が把握できるようにする。その下に区切りコメントを置き、privateヘルパーをまとめて配置する。
+
+### Example
+
+```python
+# app/views/task.py
+
+# タスク編集
+def edit(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if request.method == 'POST':
+        return _update_task(request, task)
+    return _display_edit_form(request, task)
+
+
+# (他の公開アクションが続く)
+
+
+# ============================================================
+# ここから先はprivateヘルパー
+# ============================================================
+
+
+# 編集フォームを表示する
+def _display_edit_form(request, task):
+    form = TaskForm(instance=task)
+    return _render_edit_form(request, task, form)
+
+
+# タスクの更新処理を行う
+def _update_task(request, task):
+    form = TaskForm(request.POST, instance=task)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'タスクを更新しました。')
+        return redirect('app:task_show', pk=task.pk)
+    return _render_edit_form(request, task, form)
+
+
+# タスク編集フォームのレンダリング
+def _render_edit_form(request, task, form):
+    return render(request, 'app/task/edit.html', {'form': form, 'task': task})
+```
+
 ## Partial Template Rules
 
 Djangoにはpartialに関するネーミング規則が無いため、Railsに倣い、`{% include %}` で読み込むパーシャルテンプレートのファイル名の先頭には `_` を付ける。
