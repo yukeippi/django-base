@@ -341,6 +341,21 @@ class TestTaskEditView:
         response = other_auth_client.get(f'/tasks/{task.id}/edit/')
         assert response.status_code == 403
 
+    # 作成者でも担当者でもない一般ユーザーがPOSTで更新しようとすると403が返り、タスクが変更されないことを確認
+    def test_edit_by_unrelated_user_post_returns_403(self, other_auth_client, sample_user):
+        task = Task.objects.create(title='Original Title', created_by=sample_user)
+
+        response = other_auth_client.post(f'/tasks/{task.id}/edit/', {
+            'title': 'Hacked Title',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        task.refresh_from_db()
+        assert response.status_code == 403
+        assert task.title == 'Original Title'
+
     # 担当者は編集できることを確認
     def test_edit_by_assigned_user_succeeds(self, other_auth_client, sample_user, other_user):
         task = Task.objects.create(title='Original Title', created_by=sample_user, assigned_to=other_user)
@@ -348,12 +363,42 @@ class TestTaskEditView:
         response = other_auth_client.get(f'/tasks/{task.id}/edit/')
         assert response.status_code == 200
 
+    # 担当者はPOSTで更新を完了できることを確認
+    def test_edit_by_assigned_user_can_update(self, other_auth_client, sample_user, other_user):
+        task = Task.objects.create(title='Original Title', created_by=sample_user, assigned_to=other_user)
+
+        response = other_auth_client.post(f'/tasks/{task.id}/edit/', {
+            'title': 'Updated By Assignee',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        task.refresh_from_db()
+        assert response.status_code == 302
+        assert task.title == 'Updated By Assignee'
+
     # 管理者は誰のタスクでも編集できることを確認
     def test_edit_by_admin_succeeds(self, admin_client, sample_user):
         task = Task.objects.create(title='Original Title', created_by=sample_user)
 
         response = admin_client.get(f'/tasks/{task.id}/edit/')
         assert response.status_code == 200
+
+    # 管理者はPOSTで誰のタスクでも更新を完了できることを確認
+    def test_edit_by_admin_can_update(self, admin_client, sample_user):
+        task = Task.objects.create(title='Original Title', created_by=sample_user)
+
+        response = admin_client.post(f'/tasks/{task.id}/edit/', {
+            'title': 'Updated By Admin',
+            'description': '',
+            'status': 'todo',
+            'priority': 3,
+        })
+
+        task.refresh_from_db()
+        assert response.status_code == 302
+        assert task.title == 'Updated By Admin'
 
 
 @pytest.mark.django_db
