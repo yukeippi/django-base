@@ -12,14 +12,24 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 各ディレクトリに__init__.pyを配置すること。
 
+## Layout Rules
+
+もっとも低レイヤーの共通テンプレート(全ページの土台となるレイアウト)は `templates/layouts/` ディレクトリに置く。既定のレイアウトファイル名は `default.html` とする。将来的に別のレイアウトが必要になった場合は `layouts/admin.html` のように用途名を付けたファイルを追加する。
+
+### Example
+
+```
+templates/layouts/default.html
+```
+
 ## Template Rules
 
-`base/base.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
+`layouts/default.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
 
 ### Example
 
 ```html
-{% extends 'base/base.html' %}
+{% extends 'layouts/default.html' %}
 
 {% block title %}記事一覧{% endblock %}
 
@@ -153,10 +163,10 @@ static/
 
 ### 読み込み方法
 
-`base.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
+`layouts/default.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
 
 ```html
-<!-- base.html -->
+<!-- layouts/default.html -->
 <link rel="stylesheet" href="{% static 'common.css' %}">
 {% block extra_css %}{% endblock %}
 
