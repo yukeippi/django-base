@@ -1,0 +1,19 @@
+{% extends 'layouts/default.html' %}
+
+{% block title %}管理グループ削除確認{% endblock %}
+
+{% block content %}
+<h1>管理グループを削除しますか?</h1>
+
+<div class="card">
+    <div class="card-body">
+        <p id="delete-management-group-name" class="fs-5">{{ management_group.name }}</p>
+
+        <form method="post" id="management-group-delete-form" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" id="management-group-delete-confirm" class="btn btn-danger">削除する</button>
+        </form>
+        <a href="{% url 'app:management_group_show' management_group.pk %}" class="btn btn-outline-secondary">キャンセル</a>
+    </div>
+</div>
+{% endblock %}

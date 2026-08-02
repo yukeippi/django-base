@@ -18,4 +18,9 @@ urlpatterns = [
     path('employees/<int:pk>/', views.employee.show, name='employee_show'),
     path('employees/<int:pk>/edit/', views.employee.edit, name='employee_edit'),
     path('employees/<int:pk>/delete/', views.employee.delete, name='employee_delete'),
+    path('management_groups/', views.management_group.index, name='management_group_index'),
+    path('management_groups/new/', views.management_group.new, name='management_group_new'),
+    path('management_groups/<int:pk>/', views.management_group.show, name='management_group_show'),
+    path('management_groups/<int:pk>/edit/', views.management_group.edit, name='management_group_edit'),
+    path('management_groups/<int:pk>/delete/', views.management_group.delete, name='management_group_delete'),
 ]
