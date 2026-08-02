@@ -6,9 +6,8 @@ from app.models import ManagementGroup
 class ManagementGroupForm(forms.ModelForm):
     class Meta:
         model = ManagementGroup
-        fields = ['name', 'permission_level', 'members']
+        fields = ['name', 'members']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'permission_level': forms.Select(attrs={'class': 'form-select'}),
             'members': forms.SelectMultiple(attrs={'class': 'form-select'}),
         }

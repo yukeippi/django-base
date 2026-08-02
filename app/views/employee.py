@@ -7,6 +7,7 @@ from app.models import Employee
 
 
 # 社員一覧
+# TODO: 権限制御を再設計後、閲覧範囲を絞り込む
 @login_required
 def index(request):
     employees_qs = Employee.objects.select_related('user').all()
@@ -26,6 +27,7 @@ def show(request, pk):
 
 
 # 社員新規作成
+# TODO: 権限制御を再設計後、作成可否をチェックする
 @login_required
 def new(request):
     if request.method == 'POST':
@@ -34,6 +36,7 @@ def new(request):
 
 
 # 社員編集
+# TODO: 権限制御を再設計後、編集可否をチェックする
 @login_required
 def edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
@@ -43,6 +46,7 @@ def edit(request, pk):
 
 
 # 社員削除
+# TODO: 権限制御を再設計後、削除可否をチェックする
 @login_required
 def delete(request, pk):
     employee = get_object_or_404(Employee, pk=pk)

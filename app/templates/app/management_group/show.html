@@ -14,10 +14,6 @@
 
 <div class="management-group-detail card">
     <div class="card-body">
-        <div class="management-group-field mb-3">
-            <label class="form-label fw-bold">権限レベル:</label>
-            <p id="management-group-permission-level">{{ management_group.get_permission_level_display }}</p>
-        </div>
         <div class="management-group-field mb-0">
             <label class="form-label fw-bold">メンバー:</label>
             {% if management_group.members.all %}

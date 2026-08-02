@@ -16,7 +16,6 @@
         <thead>
             <tr>
                 <th>管理グループ名</th>
-                <th>権限レベル</th>
                 <th>メンバー数</th>
             </tr>
         </thead>
@@ -24,7 +23,6 @@
             {% for management_group in management_groups %}
             <tr class="management-group-row" data-href="{% url 'app:management_group_show' management_group.pk %}">
                 <td>{{ management_group.name }}</td>
-                <td>{{ management_group.get_permission_level_display }}</td>
                 <td>{{ management_group.members.count }}</td>
             </tr>
             {% endfor %}

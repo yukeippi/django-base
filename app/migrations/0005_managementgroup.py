@@ -17,7 +17,6 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100, unique=True, verbose_name='管理グループ名')),
-                ('permission_level', models.CharField(choices=[('view', '閲覧のみ'), ('edit', '閲覧・編集'), ('admin', '全体管理者')], default='view', max_length=10, verbose_name='権限レベル')),
                 ('members', models.ManyToManyField(blank=True, related_name='management_groups', to=settings.AUTH_USER_MODEL, verbose_name='メンバー')),
             ],
             options={

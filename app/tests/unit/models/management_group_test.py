@@ -7,18 +7,12 @@ from app.models import ManagementGroup
 @pytest.mark.django_db
 class TestManagementGroupModel:
 
-    # 名前のみでデフォルト値(閲覧のみ)のグループを作成できることを確認
-    def test_create_with_default_permission_level(self):
+    # 名前のみでグループを作成できることを確認
+    def test_create_with_name_only(self):
         group = ManagementGroup.objects.create(name='開発チーム')
 
         assert group.id is not None
-        assert group.permission_level == ManagementGroup.VIEW
-
-    # 権限レベルを指定して作成できることを確認
-    def test_create_with_admin_permission_level(self):
-        group = ManagementGroup.objects.create(name='人事部', permission_level=ManagementGroup.ADMIN)
-
-        assert group.permission_level == ManagementGroup.ADMIN
+        assert group.name == '開発チーム'
 
     # 名前が重複する場合はエラーになることを確認
     def test_name_must_be_unique(self):

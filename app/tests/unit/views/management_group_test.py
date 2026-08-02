@@ -62,7 +62,6 @@ class TestManagementGroupCreateView:
     def test_post_valid_data_creates_group_and_redirects(self, admin_client, sample_user):
         response = admin_client.post('/management_groups/new/', {
             'name': '開発チーム',
-            'permission_level': ManagementGroup.VIEW,
             'members': [sample_user.id],
         })
 
@@ -87,14 +86,12 @@ class TestManagementGroupEditView:
 
         response = admin_client.post(f'/management_groups/{group.id}/edit/', {
             'name': '運用チーム',
-            'permission_level': ManagementGroup.ADMIN,
             'members': [],
         })
 
         group.refresh_from_db()
         assert response.status_code == 302
         assert group.name == '運用チーム'
-        assert group.permission_level == ManagementGroup.ADMIN
 
 
 @pytest.mark.django_db

@@ -1,6 +1,5 @@
 import pytest
 from app.forms.management_group import ManagementGroupForm
-from app.models import ManagementGroup
 
 
 # ManagementGroupFormのテストクラス
@@ -11,7 +10,6 @@ class TestManagementGroupForm:
     def test_valid_data_is_valid(self, sample_user):
         form = ManagementGroupForm(data={
             'name': '開発チーム',
-            'permission_level': ManagementGroup.VIEW,
             'members': [sample_user.id],
         })
         assert form.is_valid()
@@ -20,7 +18,6 @@ class TestManagementGroupForm:
     def test_blank_name_is_invalid(self):
         form = ManagementGroupForm(data={
             'name': '',
-            'permission_level': ManagementGroup.VIEW,
             'members': [],
         })
         assert not form.is_valid()
@@ -30,7 +27,6 @@ class TestManagementGroupForm:
     def test_no_members_is_valid(self):
         form = ManagementGroupForm(data={
             'name': '開発チーム',
-            'permission_level': ManagementGroup.VIEW,
             'members': [],
         })
         assert form.is_valid()
@@ -39,7 +35,6 @@ class TestManagementGroupForm:
     def test_save_sets_members(self, sample_user, other_user):
         form = ManagementGroupForm(data={
             'name': '開発チーム',
-            'permission_level': ManagementGroup.EDIT,
             'members': [sample_user.id, other_user.id],
         })
         assert form.is_valid()
