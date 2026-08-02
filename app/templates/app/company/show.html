@@ -1,0 +1,31 @@
+{% extends 'layouts/default.html' %}
+
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 id="company-name" class="mb-0">{{ company.name }}</h1>
+    <div>
+        <a href="{% url 'app:company_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+        <a href="{% url 'app:company_edit' company.pk %}" id="edit-company-link" class="btn btn-primary">編集</a>
+        <a href="{% url 'app:company_delete' company.pk %}" id="delete-company-link" class="btn btn-danger">削除</a>
+    </div>
+</div>
+
+<div class="company-detail card">
+    <div class="card-body">
+        <div class="company-field mb-0">
+            <label class="form-label fw-bold">部門:</label>
+            {% if company.departments.all %}
+            <ul id="company-departments">
+                {% for department in company.departments.all %}
+                <li>{{ department.name }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p id="company-no-departments">部門が登録されていません。</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -173,6 +173,34 @@ pytest --cov=app --cov=config --cov-report=html --cov-report=term
 
 詳細なテストガイドは [docs/testing.md](docs/testing.md) を参照してください。
 
+## 開発用コマンド
+
+### TODO/FIXME/OPTIMIZEコメントの一覧表示
+
+Railsの`rails notes`相当のコマンドです。`app`/`config`/`common`配下のコード中の`TODO`/`FIXME`/`OPTIMIZE`コメントを一覧表示します。
+
+```bash
+python manage.py notes
+
+# 特定のタグのみ表示
+python manage.py notes --tag=FIXME
+```
+
+### データベースのリセット・シードデータ投入
+
+開発用データベースを初期化し、動作確認用のサンプルデータ(社員・管理グループなど)を投入します。
+
+```bash
+# データベースを初期化してシードデータを投入
+python manage.py reset_database --seed
+
+# 確認プロンプトを省略する場合
+python manage.py reset_database --seed --noinput
+
+# リセットせずシードデータだけ投入する場合
+python manage.py seed_database
+```
+
 ## 使用している主要なパッケージ
 
 - Django 6.0

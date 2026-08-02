@@ -9,6 +9,9 @@ class Command(BaseCommand):
     def handle(self, *_args, **_options):
         seeds.employee.create()
         seeds.management_group.create()
+        seeds.company.create()
+        seeds.department.create()
+        seeds.employee_department.create()
 
         self.stdout.write(self.style.SUCCESS(
             'シードデータを投入しました。(ログイン例: 社員番号=E0001 パスワード=password123)'
