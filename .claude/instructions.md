@@ -254,27 +254,44 @@ class Task(models.Model):
 
 CSSは「共通ファイル」と「モデルごとのファイル」に分ける。モデルごとのファイルは、そのモデルのindex/show/new/editページで共通のファイルを1つ使う(ページ単位には分けない)。
 
+自前で書くCSSは(共通・モデル別を問わず)全てDjangoアプリの`app/static/app/`に置く。トップレベルの`static/`は、Bootstrap等サードパーティ製のvendorファイル専用とする(自前のCSSと混在させない)。
+
 ### ディレクトリ構成
 
 ```
 static/
-├── common.css        # 全ページ共通のスタイル
-└── app/
-    └── task.css       # taskモデル関連ページ(index/show/new/edit)共通のスタイル
+└── vendor/            # サードパーティ製ファイル(Bootstrap等)専用
+    └── bootstrap/...
+app/static/app/
+├── common.css          # 全ページ共通のスタイル(自前CSSはここに置く)
+└── task.css            # taskモデル関連ページ(index/show/new/edit)共通のスタイル
 ```
 
 ### 読み込み方法
 
-`layouts/default.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
+`layouts/default.html` で `app/common.css` を常に読み込む。モデル別CSSは、`index`/`show`/`new`/`edit`/`delete`の各ページが個別に`{% block extra_css %}`を書くと重複するため、モデルディレクトリに`base.html`(`layouts/default.html`を継承し、`extra_css`ブロックだけを埋める中間テンプレート)を1つ置き、各ページはそちらを継承する。`_form.html`のような`{% include %}`用パーシャルとは役割が違うため、`_`は付けない。
 
 ```html
 <!-- layouts/default.html -->
-<link rel="stylesheet" href="{% static 'common.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/common.css' %}">
 {% block extra_css %}{% endblock %}
 
-<!-- app/task/index.html -->
+<!-- app/task/base.html -->
+{% extends 'layouts/default.html' %}
+{% load static %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'app/task.css' %}">
+{% endblock %}
+
+<!-- app/task/index.html -->
+{% extends 'app/task/base.html' %}
+
+{% block title %}タスク一覧{% endblock %}
+
+{% block content %}
+...
 {% endblock %}
 ```
 

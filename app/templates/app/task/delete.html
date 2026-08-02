@@ -1,11 +1,6 @@
-{% extends 'layouts/default.html' %}
-{% load static %}
+{% extends 'app/task/base.html' %}
 
 {% block title %}タスク削除確認{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'app/task.css' %}">
-{% endblock %}
 
 {% block content %}
 <h1>タスクを削除しますか?</h1>

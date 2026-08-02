@@ -33,7 +33,8 @@ app/             メインアプリケーション
 │   └── task.py
 ├── urls.py
 ├── admin.py
-├── static/app/      アプリ固有の静的ファイル
+├── static/app/      自前CSS(共通・モデル別問わず)
+│   ├── common.css
 │   └── task.css
 ├── templates/
 │   ├── layouts/         共通レイアウト
@@ -51,8 +52,9 @@ app/             メインアプリケーション
     │   └── views/
     └── e2e/         E2Eテスト(Playwright、機能ごとにファイル分割)
 common/          複数アプリ間で共有するモジュール (utils.py, mixins.py)
-static/          プロジェクト全体の共通静的ファイル
-└── common.css
+static/          サードパーティ製vendorファイル専用 (自前CSSは置かない)
+└── vendor/
+    └── bootstrap/...
 ```
 
 ## 4. セットアップ・よく使うコマンド
