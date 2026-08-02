@@ -16,26 +16,32 @@ def django_db_setup(django_db_setup, django_db_blocker):
         call_command('migrate', '--run-syncdb')
 
 
-# テスト用のサンプルユーザーを作成するフィクスチャ
+# テスト用のサンプルユーザー(Employee付き)を作成するフィクスチャ
 @pytest.fixture
 def sample_user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(
+    from app.models import Employee
+    user = User.objects.create_user(
         username='testuser',
         email='test@example.com',
         password='testpass123'
     )
+    Employee.objects.create(user=user, employee_number='E0001')
+    return user
 
 
-# 別ユーザー(権限チェックで「本人ではない一般ユーザー」として使う)を作成するフィクスチャ
+# 別ユーザー(権限チェックで「本人ではない一般ユーザー」として使う、Employee付き)を作成するフィクスチャ
 @pytest.fixture
 def other_user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(
+    from app.models import Employee
+    user = User.objects.create_user(
         username='otheruser',
         email='other@example.com',
         password='otherpass123'
     )
+    Employee.objects.create(user=user, employee_number='E0002')
+    return user
 
 
 # sample_userでログイン済みのクライアントを返すフィクスチャ

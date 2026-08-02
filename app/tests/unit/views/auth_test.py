@@ -11,10 +11,10 @@ class TestLoginView:
         assert response.status_code == 200
         assert 'form' in response.context
 
-    # 正しい認証情報でログインするとタスク一覧にリダイレクトされることを確認
+    # 正しい認証情報(社員番号+パスワード)でログインするとタスク一覧にリダイレクトされることを確認
     def test_post_valid_credentials_logs_in_and_redirects(self, client, sample_user):
         response = client.post('/login/', {
-            'username': 'testuser',
+            'username': sample_user.employee.employee_number,
             'password': 'testpass123',
         })
 
@@ -25,7 +25,7 @@ class TestLoginView:
     # 誤った認証情報の場合、ログインできずフォームが再表示されることを確認
     def test_post_invalid_credentials_redisplays_form(self, client, sample_user):
         response = client.post('/login/', {
-            'username': 'testuser',
+            'username': sample_user.employee.employee_number,
             'password': 'wrongpassword',
         })
 

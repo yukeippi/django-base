@@ -16,22 +16,25 @@ def live_server_url(live_server):
     return live_server.url
 
 
-# E2Eテスト用のユーザーを作成するフィクスチャ
+# E2Eテスト用のユーザー(Employee付き)を作成するフィクスチャ
 @pytest.fixture(scope='function')
 def e2e_user(db):
     from django.contrib.auth.models import User
-    return User.objects.create_user(
+    from app.models import Employee
+    user = User.objects.create_user(
         username='e2euser',
         email='e2e@example.com',
         password='e2epass123'
     )
+    Employee.objects.create(user=user, employee_number='E9001')
+    return user
 
 
 # ブラウザ上でログインフォームを操作し、e2e_userとしてログイン済みの状態にするフィクスチャ
 @pytest.fixture(scope='function')
 def logged_in_page(page, live_server_url, e2e_user):
     page.goto(f'{live_server_url}/login/')
-    page.fill('#id_username', 'e2euser')
+    page.fill('#id_username', e2e_user.employee.employee_number)
     page.fill('#id_password', 'e2epass123')
     page.click('#login-submit')
     return page

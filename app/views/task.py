@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from app.forms import TaskForm
 from app.models import Task
-from app.auth import can_delete_task, can_edit_task
+from app.permissions import can_delete_task, can_edit_task
 
 
 # タスク一覧

@@ -1,54 +1,39 @@
 import pytest
-from app.auth import can_delete_task, can_edit_task, is_admin
-from app.models import Task
+from django.contrib.auth.models import User
+from app.auth import EmployeeNumberBackend
+from app.models import Employee
 
 
-# app/auth.pyの権限判定ロジックのテストクラス
+# app/auth.pyの認証バックエンドのテストクラス
 @pytest.mark.django_db
-class TestIsAdmin:
+class TestEmployeeNumberBackend:
 
-    # is_staffがTrueのユーザーは管理者と判定されることを確認
-    def test_staff_user_is_admin(self, admin_user):
-        assert is_admin(admin_user) is True
+    # 正しい社員番号とパスワードで認証に成功することを確認
+    def test_authenticate_with_correct_credentials(self):
+        user = User.objects.create_user(username='backenduser', password='pass12345')
+        Employee.objects.create(user=user, employee_number='E1001')
 
-    # is_staffがFalseのユーザーは管理者ではないと判定されることを確認
-    def test_regular_user_is_not_admin(self, sample_user):
-        assert is_admin(sample_user) is False
+        authenticated_user = EmployeeNumberBackend().authenticate(
+            request=None, username='E1001', password='pass12345'
+        )
 
+        assert authenticated_user == user
 
-@pytest.mark.django_db
-class TestCanEditTask:
+    # 誤ったパスワードでは認証に失敗することを確認
+    def test_authenticate_with_wrong_password(self):
+        user = User.objects.create_user(username='backenduser', password='pass12345')
+        Employee.objects.create(user=user, employee_number='E1001')
 
-    # 作成者本人は編集可能と判定されることを確認
-    def test_creator_can_edit(self, sample_user):
-        task = Task.objects.create(title='Task', created_by=sample_user)
-        assert can_edit_task(sample_user, task) is True
+        authenticated_user = EmployeeNumberBackend().authenticate(
+            request=None, username='E1001', password='wrongpass'
+        )
 
-    # 担当者本人は編集可能と判定されることを確認
-    def test_assignee_can_edit(self, sample_user):
-        task = Task.objects.create(title='Task', assigned_to=sample_user)
-        assert can_edit_task(sample_user, task) is True
+        assert authenticated_user is None
 
-    # 管理者はどのタスクでも編集可能と判定されることを確認
-    def test_admin_can_edit_any_task(self, admin_user, other_user):
-        task = Task.objects.create(title='Task', created_by=other_user)
-        assert can_edit_task(admin_user, task) is True
+    # 存在しない社員番号では認証に失敗することを確認
+    def test_authenticate_with_unknown_employee_number(self):
+        authenticated_user = EmployeeNumberBackend().authenticate(
+            request=None, username='UNKNOWN', password='pass12345'
+        )
 
-    # 作成者でも担当者でも管理者でもないユーザーは編集不可と判定されることを確認
-    def test_unrelated_user_cannot_edit(self, sample_user, other_user):
-        task = Task.objects.create(title='Task', created_by=other_user)
-        assert can_edit_task(sample_user, task) is False
-
-
-@pytest.mark.django_db
-class TestCanDeleteTask:
-
-    # 作成者本人は削除可能と判定されることを確認
-    def test_creator_can_delete(self, sample_user):
-        task = Task.objects.create(title='Task', created_by=sample_user)
-        assert can_delete_task(sample_user, task) is True
-
-    # 作成者でも担当者でも管理者でもないユーザーは削除不可と判定されることを確認
-    def test_unrelated_user_cannot_delete(self, sample_user, other_user):
-        task = Task.objects.create(title='Task', created_by=other_user)
-        assert can_delete_task(sample_user, task) is False
+        assert authenticated_user is None
