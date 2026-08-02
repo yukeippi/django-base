@@ -59,6 +59,11 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
+    # save()のたびに必ずバリデーション(フィールドのvalidators等)が走るようにする
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     # 期限を過ぎているかチェック
     def is_overdue(self):
         if not self.due_date:

@@ -24,7 +24,7 @@ class TestTaskModel:
         due_date = date.today() + timedelta(days=7)
         task = Task.objects.create(
             title='Complete Task',
-            description='This is a test task',
+            description='This is a test task #1',
             status='in_progress',
             priority=1,
             assigned_to=sample_user,
@@ -32,7 +32,7 @@ class TestTaskModel:
         )
 
         assert task.title == 'Complete Task'
-        assert task.description == 'This is a test task'
+        assert task.description == 'This is a test task #1'
         assert task.status == 'in_progress'
         assert task.priority == 1
         assert task.assigned_to == sample_user

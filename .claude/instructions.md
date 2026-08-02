@@ -435,11 +435,12 @@ class Command(BaseCommand):
 
 ## Model Validation Rules
 
-複数フィールドにまたがるユニーク制約(重複禁止)は、DBの`UniqueConstraint`ではなく、モデルの`clean()` + `save()`オーバーライドで表現する。
+Djangoは`save()`時に自動でバリデーション(フィールドの`validators`、`clean()`)を実行しない(ModelFormの`is_valid()`経由でのみ実行される)。フォームを経由しないシェル・管理コマンド・データ移行などでもバリデーションが素通りしないよう、バリデーションロジックを持つモデルは`save()`をオーバーライドして`full_clean()`を必ず呼ぶ。
 
-- `clean()`に検証ロジックを書き、条件に反する場合は`django.core.exceptions.ValidationError`を送出する
+- フィールドの`validators=[...]`や`clean()`に検証ロジックを書く。複数フィールドにまたがるユニーク制約(重複禁止)も、DBの`UniqueConstraint`ではなく`clean()`で`django.core.exceptions.ValidationError`を送出する形にする
 - `save()`をオーバーライドし、`super().save()`を呼ぶ前に`self.full_clean()`を呼ぶ(Railsのように、`save()`のたびに必ずバリデーションが走るようにする)
-- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため
+- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため。また`save()`でバリデーションを効かせないと、フォームを経由しない直接作成(シェル操作等)でルール違反のデータが作られてしまう
+- ModelForm経由の保存では`is_valid()`(内部で`full_clean()`)とこの`save()`の両方でバリデーションが走るが、二重に検証されるだけで害はない
 
 (注: この方針はまだ確信が持てていない試験的なルールで、今後変更する可能性がある)
 

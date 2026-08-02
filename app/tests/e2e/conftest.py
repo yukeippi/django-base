@@ -49,7 +49,7 @@ def setup_test_data(e2e_user):
     # サンプルタスクを作成
     Task.objects.create(
         title='E2E Test Task 1',
-        description='This is a test task for E2E testing',
+        description='This is a test task for E2E testing #1',
         status='todo',
         priority=1,
         assigned_to=e2e_user,
@@ -58,7 +58,7 @@ def setup_test_data(e2e_user):
 
     Task.objects.create(
         title='E2E Test Task 2',
-        description='Another test task',
+        description='Another test task #2',
         status='in_progress',
         priority=2,
         assigned_to=e2e_user,
@@ -68,7 +68,7 @@ def setup_test_data(e2e_user):
 
     Task.objects.create(
         title='E2E Test Task 3',
-        description='Completed task',
+        description='Completed task #3',
         status='done',
         priority=3,
         created_by=e2e_user,
