@@ -14,7 +14,7 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 各ディレクトリに__init__.pyを配置すること。
 
-`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/auth.py`や`app/validators.py`のように、特定のレイヤーディレクトリに属さない単発モジュールのテストは、`tests/unit/`直下に置く(例: `tests/unit/auth_test.py`, `tests/unit/validators_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
+`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/auth.py`(認証)や`app/permissions.py`(権限判定)、`app/validators.py`のように、特定のレイヤーディレクトリに属さない単発モジュールのテストは、`tests/unit/`直下に置く(例: `tests/unit/auth_test.py`, `tests/unit/permissions_test.py`, `tests/unit/validators_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
 
 ## Layout Rules
 
@@ -282,13 +282,14 @@ static/
 
 共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。認証・認可のようにモデルに紐づくロジック(例: `app/auth.py`)や、ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同様に、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。モデルに紐づくロジックも役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/auth.py`、権限(何ができるかの判定)は`app/permissions.py`。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同様に、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。これは実際に2つ以上のアプリから使われるようになった時点で行う。
 
 ```
 config/
 app/
-├── auth.py                  # app内で共有する認証・認可ロジック
+├── auth.py                  # app内で共有する認証ロジック(ログイン等、誰であるかの検証)
+├── permissions.py           # app内で共有する権限判定ロジック(何ができるかの判定)
 ├── utils.py                 # app内で共有するユーティリティ
 └── templates/
     └── common/              # appアプリ内で共有するパーシャルテンプレート
