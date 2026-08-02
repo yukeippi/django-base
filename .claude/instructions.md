@@ -372,3 +372,63 @@ class Task(TaskBase, TimestampMixin):
 - 同一ブランチ内(mainに未マージ)で同じモデルへの変更を続ける場合、新しいマイグレーションファイルを都度追加せず、まだ未適用のマイグレーションファイルを直接編集して1つにまとめる。
 - ブランチがmainにマージされた後にさらに変更が必要になった場合は、既存のマイグレーションを書き換えず、新しいマイグレーションファイルを追加する。
 - マイグレーションを直接編集した後は、`python manage.py makemigrations --check --dry-run`でモデル定義とのズレがないことを確認する。
+
+## Seed Data Rules
+
+開発・動作確認用のシードデータ生成ロジックは、models/views/forms等と同様にモデルごとにファイル分割し、`app/seeds/` ディレクトリに置く。`app/management/commands/seed_database.py` は各`app/seeds/*.py`の`create()`を呼び出すだけの薄い実装にする。
+
+- **モデルを追加したら、そのモデルにシードデータが必要か検討する**: 画面確認やログインに使うようなモデル(例: Employee)は追加時にシードデータも作成する。参照専用のマスタ的なモデルなど不要な場合はスキップしてよい。
+- **配置場所**: `app/seeds/<model>.py` に `create()` 関数を定義する。他のシードから参照される可能性がある場合は、作成したオブジェクトを返す。
+- **呼び出し順序**: `seed_database.py`の`handle()`で、モデルの依存関係(外部キー等)を考慮した順序で各`create()`を呼び出す。
+- **シードデータは最小限にする**: ログイン確認用など個別に参照したいレコードは社員番号などを固定して少数だけ作る。一覧・ページネーションなど「複数件あること」の確認が必要な場合のみ、`Faker`(`Faker('ja_JP')`)でダミーデータを追加生成する。用途がないのに機械的に大量のダミーデータを生成しない。
+- **パスワードは固定の簡易値でよい**: `password123` のような開発用の固定パスワードを使う(本番相当のランダム生成は不要)。
+
+### Example
+
+```
+app/seeds/
+├── __init__.py       # from . import employee のようにモジュール単位でインポート
+└── employee.py        # def create(): ...
+```
+
+```python
+# app/seeds/employee.py
+from django.contrib.auth.models import User
+from faker import Faker
+from app.models import Employee
+
+fake = Faker('ja_JP')
+DUMMY_EMPLOYEE_COUNT = 10
+
+
+# 社員のシードデータを作成する
+def create():
+    # ログイン確認用に社員番号を固定した社員
+    _create_employee('E0001', '太郎', '山田', is_staff=True)
+    _create_employee('E0002', '花子', '鈴木')
+
+    # 一覧・ページネーション確認用のダミー社員
+    for i in range(1, DUMMY_EMPLOYEE_COUNT + 1):
+        _create_employee(f'E9{i:03d}', fake.first_name(), fake.last_name())
+
+
+def _create_employee(employee_number, first_name, last_name, is_staff=False):
+    user = User.objects.create_user(
+        username=employee_number, password='password123',
+        first_name=first_name, last_name=last_name, is_staff=is_staff,
+    )
+    return Employee.objects.create(user=user, employee_number=employee_number)
+```
+
+```python
+# app/management/commands/seed_database.py
+from django.core.management.base import BaseCommand
+from app import seeds
+
+
+class Command(BaseCommand):
+    help = '動作確認用のシードデータを投入する'
+
+    def handle(self, *_args, **_options):
+        seeds.employee.create()
+```
