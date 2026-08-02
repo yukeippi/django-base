@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 from app.models import Task
-from app.validators import ContainsCharacterValidator
+from app.lib.validators import ContainsCharacterValidator
 
 
 # ContainsCharacterValidator単体のテストクラス

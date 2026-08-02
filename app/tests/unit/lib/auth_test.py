@@ -1,6 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
-from app.auth import EmployeeNumberBackend
+from app.lib.auth import EmployeeNumberBackend
 from app.models import Employee
 
 

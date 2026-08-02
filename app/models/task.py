@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from app.validators import ContainsCharacterValidator
+from app.lib.validators import ContainsCharacterValidator
 
 
 # タスク管理のためのサンプルモデル

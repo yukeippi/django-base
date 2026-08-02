@@ -90,7 +90,7 @@ DATABASES = {
 # 認証バックエンド
 # 社員番号(employee_number)でログインするため、標準のModelBackend(username認証)は使わない
 AUTHENTICATION_BACKENDS = [
-    'app.auth.EmployeeNumberBackend',
+    'app.lib.auth.EmployeeNumberBackend',
 ]
 
 

@@ -1,5 +1,5 @@
 import pytest
-from app.permissions import can_delete_task, can_edit_task, is_admin
+from app.lib.permissions import can_delete_task, can_edit_task, is_admin
 from app.models import Task
 
 

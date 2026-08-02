@@ -1,5 +1,10 @@
 # Django Development Guidelines
 
+> **このファイルの位置づけ**: 別のDjangoプロジェクトにそのままコピーして使う、再利用可能な開発規約集(`CLAUDE.md`が「雛形として引き継ぐ」と定義している章の一つ)。書く内容は「このプロジェクトの現在の状態」ではなく、Djangoプロジェクト一般に適用できる規約・パターンにすること。
+>
+> - 各ルールの例に出てくる`Task`/`Employee`等のモデル名は、あくまでパターンを説明するための例示。実際のこのプロジェクトのモデル・ファイル構成と完全に一致している必要はない(コピー先の別プロジェクトではどのみち別のモデル名になる)
+> - 一方、規約・パターンの説明自体に矛盾や誤りがある場合は、コピー先でも同じ混乱を招くため修正する
+
 ## File Structure Rules
 
 models、forms、views、tests、templatesはディレクトリ化し、機能ごとにファイル分割してください。
@@ -14,7 +19,7 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 各ディレクトリに__init__.pyを配置すること。
 
-`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/auth.py`(認証)や`app/permissions.py`(権限判定)、`app/validators.py`のように、特定のレイヤーディレクトリに属さない単発モジュールのテストは、`tests/unit/`直下に置く(例: `tests/unit/auth_test.py`, `tests/unit/permissions_test.py`, `tests/unit/validators_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
+`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`, `lib/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/lib/`(`auth.py`/`permissions.py`/`validators.py`等、app内で共有するロジック。詳細はCommon Module Rulesを参照)のテストも同様に`tests/unit/lib/`に置く(例: `tests/unit/lib/auth_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
 
 ## Layout Rules
 
@@ -46,12 +51,27 @@ app/templates/common/
 
 ## Template Rules
 
-`layouts/default.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
+テンプレートの継承は3段階にする。各ページ側は`{% block %}`の中身だけを記述する最小限の内容にする。
+
+1. `layouts/default.html`: サイト全体の骨格(`<head>`の共通アセット読み込みと`{% block %}`定義)。詳細はLayout Rulesを参照
+2. `app/<model>/base.html`: モデル単位の中間テンプレート。`layouts/default.html`を継承し、そのモデルの全ページで共通の`{% block %}`(モデル別CSSの読み込み等)をここで埋める。詳細はCSS Rulesを参照
+3. `app/<model>/<page>.html`: ページごとのテンプレート。`app/<model>/base.html`を継承し、`title`/`content`など、そのページ固有の`{% block %}`だけを埋める
 
 ### Example
 
 ```html
+<!-- app/article/base.html -->
 {% extends 'layouts/default.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app/article.css' %}">
+{% endblock %}
+```
+
+```html
+<!-- app/article/index.html -->
+{% extends 'app/article/base.html' %}
 
 {% block title %}記事一覧{% endblock %}
 
@@ -269,45 +289,35 @@ app/static/app/
 
 ### 読み込み方法
 
-`layouts/default.html` で `app/common.css` を常に読み込む。モデル別CSSは、`index`/`show`/`new`/`edit`/`delete`の各ページが個別に`{% block extra_css %}`を書くと重複するため、モデルディレクトリに`base.html`(`layouts/default.html`を継承し、`extra_css`ブロックだけを埋める中間テンプレート)を1つ置き、各ページはそちらを継承する。`_form.html`のような`{% include %}`用パーシャルとは役割が違うため、`_`は付けない。
+`layouts/default.html` で `app/common.css` を常に読み込む。モデル別CSSは、`index`/`show`/`new`/`edit`/`delete`の各ページが個別に`{% block extra_css %}`を書くと重複するため、Template Rulesの`app/<model>/base.html`(モデル単位の中間テンプレート)の`extra_css`ブロックにまとめる。`_form.html`のような`{% include %}`用パーシャルとは役割が違うため、`base.html`に`_`は付けない。
 
 ```html
 <!-- layouts/default.html -->
 <link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
 <link rel="stylesheet" href="{% static 'app/common.css' %}">
 {% block extra_css %}{% endblock %}
-
-<!-- app/task/base.html -->
-{% extends 'layouts/default.html' %}
-{% load static %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'app/task.css' %}">
-{% endblock %}
-
-<!-- app/task/index.html -->
-{% extends 'app/task/base.html' %}
-
-{% block title %}タスク一覧{% endblock %}
-
-{% block content %}
-...
-{% endblock %}
 ```
 
 ## Common Module Rules
 
 共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。モデルに紐づくロジックも役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/auth.py`、権限(何ができるかの判定)は`app/permissions.py`。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同様に、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+- **1つのアプリ内で共有**: `app/lib/` に置く(Railsの`lib/`相当。models/views/forms等どこにも属さない、app固有の共有コードの置き場)。`urls.py`/`apps.py`/`admin.py`のような、Djangoの規約でアプリ直下に置くと決まっているファイルはそのままアプリ直下に残し、開発者が追加した「app内で共有するロジック」だけを`app/lib/`にまとめる。役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/lib/auth.py`、権限(何ができるかの判定)は`app/lib/permissions.py`、複数モデルで使い回すバリデータは`app/lib/validators.py`、汎用ユーティリティは`app/lib/utils.py`(増えてきたら`app/lib/utils/`ディレクトリ化し、関心事ごとにファイル分割する。例: `utils/date.py`)。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同じ考え方で、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+  - 例外: `app/management/commands/`(Djangoがこの場所を前提にコマンドを自動検出する)と`app/seeds/`(Seed Data Rules参照、モデルごとのデータ生成スクリプト群という別カテゴリ)は`app/lib/`に含めない。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。これは実際に2つ以上のアプリから使われるようになった時点で行う。
 
 ```
 config/
 app/
-├── auth.py                  # app内で共有する認証ロジック(ログイン等、誰であるかの検証)
-├── permissions.py           # app内で共有する権限判定ロジック(何ができるかの判定)
-├── utils.py                 # app内で共有するユーティリティ
+├── urls.py                  # Djangoの規約でアプリ直下に置くファイル(そのまま)
+├── apps.py
+├── admin.py
+├── lib/                     # app内で共有する、開発者が追加したロジック
+│   ├── __init__.py
+│   ├── auth.py              # 認証ロジック(ログイン等、誰であるかの検証)
+│   ├── permissions.py       # 権限判定ロジック(何ができるかの判定)
+│   ├── validators.py        # 複数モデルで使い回すカスタムバリデータ
+│   └── utils.py             # 汎用ユーティリティ
 └── templates/
     └── common/              # appアプリ内で共有するパーシャルテンプレート
         ├── _navbar.html
@@ -320,7 +330,7 @@ common/                    # 複数アプリ間で共有するモジュール(�
 
 ## Validator Rules
 
-モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/validators.py` に置く(増えてきたら `app/utils/` と同様に `app/validators/` ディレクトリ化する)。
+モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/lib/validators.py` に置く(増えてきたら `app/lib/utils/` と同様に `app/lib/validators/` ディレクトリ化する)。
 
 - **単純な条件で使い回さない場合**: ただの関数で書く。値を1つ受け取り、不正なら`django.core.exceptions.ValidationError`を送出するだけでよい。
 - **パラメータ化して複数箇所で使い回したい場合**: `__call__(self, value)` を実装したクラスにする(Rails の `ActiveModel::EachValidator` に相当)。インスタンス化時の引数で条件をカスタマイズできる。
@@ -329,7 +339,7 @@ common/                    # 複数アプリ間で共有するモジュール(�
 ### Example
 
 ```python
-# app/validators.py
+# app/lib/validators.py
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
 
@@ -348,7 +358,7 @@ class ContainsCharacterValidator:
 
 ```python
 # app/models/task.py
-from app.validators import ContainsCharacterValidator
+from app.lib.validators import ContainsCharacterValidator
 
 description = models.TextField(
     blank=True,
