@@ -1,0 +1,27 @@
+<form method="post" id="employee-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="form-field mb-3">
+        <label for="{{ form.employee_number.id_for_label }}" class="form-label">社員番号</label>
+        {{ form.employee_number }}
+        <div class="text-danger small">{{ form.employee_number.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.last_name.id_for_label }}" class="form-label">姓</label>
+        {{ form.last_name }}
+        <div class="text-danger small">{{ form.last_name.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.first_name.id_for_label }}" class="form-label">名</label>
+        {{ form.first_name }}
+        <div class="text-danger small">{{ form.first_name.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.password.id_for_label }}" class="form-label">パスワード</label>
+        {{ form.password }}
+        <div class="text-danger small">{{ form.password.errors }}</div>
+    </div>
+    <button type="submit" id="employee-form-submit" class="btn btn-primary">保存</button>
+</form>

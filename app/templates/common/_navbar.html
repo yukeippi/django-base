@@ -4,6 +4,7 @@
         <div class="navbar-nav me-auto">
             {% if user.is_authenticated %}
             <a class="nav-link" href="{% url 'app:task_index' %}">タスク一覧</a>
+            <a class="nav-link" href="{% url 'app:employee_index' %}">社員一覧</a>
             {% endif %}
         </div>
         <div class="navbar-nav">

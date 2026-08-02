@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
                 ('employee_number', models.CharField(max_length=20, unique=True, verbose_name='社員番号')),
             ],
             options={
+                'ordering': ['employee_number'],
                 'verbose_name': '社員',
                 'verbose_name_plural': '社員',
             },

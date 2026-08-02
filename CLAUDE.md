@@ -84,6 +84,8 @@ pytest --cov=app --cov=config --cov-report=html --cov-report=term  # カバレ�
 
 ファイル構成・命名規則などの詳細ルールは [.claude/instructions.md](.claude/instructions.md) を参照してください。
 
+開発フェーズに応じた方針(既存実装への追従度合いなど)は [.claude/development-phase.md](.claude/development-phase.md) を参照してください。
+
 ## 6. 環境変数
 
 `django-environ` により `.env` ファイル(Gitにはコミットされない)から読み込みます。
