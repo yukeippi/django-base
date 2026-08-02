@@ -432,3 +432,35 @@ class Command(BaseCommand):
     def handle(self, *_args, **_options):
         seeds.employee.create()
 ```
+
+## Model Validation Rules
+
+複数フィールドにまたがるユニーク制約(重複禁止)は、DBの`UniqueConstraint`ではなく、モデルの`clean()` + `save()`オーバーライドで表現する。
+
+- `clean()`に検証ロジックを書き、条件に反する場合は`django.core.exceptions.ValidationError`を送出する
+- `save()`をオーバーライドし、`super().save()`を呼ぶ前に`self.full_clean()`を呼ぶ(Railsのように、`save()`のたびに必ずバリデーションが走るようにする)
+- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため
+
+(注: この方針はまだ確信が持てていない試験的なルールで、今後変更する可能性がある)
+
+### Example
+
+```python
+from django.core.exceptions import ValidationError
+from django.db import models
+
+
+class Department(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    # 同じ会社内で部門名が重複しないようにする
+    def clean(self):
+        duplicates = Department.objects.filter(company=self.company, name=self.name).exclude(pk=self.pk)
+        if duplicates.exists():
+            raise ValidationError('この会社には同じ名前の部門が既に存在します。')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+```
