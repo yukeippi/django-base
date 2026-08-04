@@ -14,6 +14,7 @@ class DepartmentHierarchy(models.Model):
     )
 
     class Meta:
+        db_table = 'department_hierarchy'
         verbose_name = '部門階層'
         verbose_name_plural = '部門階層'
 
