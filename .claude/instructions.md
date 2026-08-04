@@ -393,6 +393,23 @@ class Task(TaskBase, TimestampMixin):
     ...
 ```
 
+## Model Table Naming Rules
+
+Djangoのデフォルトのテーブル名(`<applabel>_<モデル名を小文字化しただけの文字列>`)は、複数単語のモデル名だと単語の区切りが分からず読みにくい(例: `ManagementGroup` → `app_managementgroup`)。全モデルで`Meta.db_table`を明示し、アプリ名プレフィックスを付けず、単語間を`_`で区切ったスネークケースのテーブル名にする。
+
+- 単語区切りだけでなくアプリ名プレフィックス(`app_`等)も付けない。テーブル名だけを見て何のデータか分かることを優先する
+- モデルを追加・リネームしたら、`Meta.db_table`の設定と対応するマイグレーション(`makemigrations`で生成される`AlterModelTable`)の作成を忘れない
+
+### Example
+
+```python
+class ManagementGroup(models.Model):
+    class Meta:
+        db_table = 'management_group'
+
+    ...
+```
+
 ## Migration Rules
 
 マイグレーションファイルは、まだどこにも適用されていない間(自分のローカルDB以外に、共有DB・他の開発者・CI等で`migrate`が実行されていない間)は、自由に編集・統合してよい。逆に、一度でも共有された環境に適用されたマイグレーションは書き換えない(適用先の`django_migrations`テーブルとの整合性が壊れるため)。

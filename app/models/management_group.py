@@ -15,6 +15,7 @@ class ManagementGroup(models.Model):
     )
 
     class Meta:
+        db_table = 'management_group'
         ordering = ['name']
         verbose_name = '管理グループ'
         verbose_name_plural = '管理グループ'
