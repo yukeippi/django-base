@@ -52,6 +52,7 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True, verbose_name='期限')
 
     class Meta:
+        db_table = 'task'
         ordering = ['-created_at']
         verbose_name = 'タスク'
         verbose_name_plural = 'タスク'

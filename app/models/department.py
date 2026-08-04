@@ -9,6 +9,7 @@ class Department(models.Model):
     name = models.CharField(max_length=100, verbose_name='部門名')
 
     class Meta:
+        db_table = 'department'
         ordering = ['company', 'name']
         verbose_name = '部門'
         verbose_name_plural = '部門'

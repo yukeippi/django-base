@@ -8,6 +8,7 @@ class ManagementGroup(models.Model):
     members = models.ManyToManyField(User, related_name='management_groups', blank=True, verbose_name='メンバー')
 
     class Meta:
+        db_table = 'management_group'
         ordering = ['name']
         verbose_name = '管理グループ'
         verbose_name_plural = '管理グループ'

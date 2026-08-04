@@ -15,6 +15,7 @@ class EmployeeDepartment(models.Model):
     is_primary = models.BooleanField(default=False, verbose_name='主務')
 
     class Meta:
+        db_table = 'employee_department'
         verbose_name = '社員所属部門'
         verbose_name_plural = '社員所属部門'
 
