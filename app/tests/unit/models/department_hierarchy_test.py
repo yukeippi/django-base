@@ -48,6 +48,14 @@ class TestDepartmentHierarchyModel:
         with pytest.raises(ValidationError):
             DepartmentHierarchy.objects.create(department=department)
 
+    # 親部門に自分自身を指定した場合はエラーになることを確認
+    def test_parent_cannot_be_self(self):
+        company = Company.objects.create(name='サンプル株式会社')
+        department = Department.objects.create(company=company, name='営業部')
+
+        with pytest.raises(ValidationError):
+            DepartmentHierarchy.objects.create(department=department, parent_department=department)
+
     # __str__が「部門 (親: 親部門)」の形式を返すことを確認
     def test_str_includes_department_and_parent(self):
         company = Company.objects.create(name='サンプル株式会社')

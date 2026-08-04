@@ -54,6 +54,10 @@ def _get_primary_department(user):
 
 # 対象部門(group_department)が、基準部門(primary_department)自身・親・兄弟のいずれかに一致するかを判定する
 def _is_self_parent_or_sibling(group_department, primary_department):
+    # department未設定(本来は不正なデータ)の場合は、誤って適用されないようfail closedとする
+    if group_department is None:
+        return False
+
     if group_department == primary_department:
         return True
 
