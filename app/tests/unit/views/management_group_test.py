@@ -18,7 +18,7 @@ class TestManagementGroupIndexView:
 
     # 管理者は一覧を取得できることを確認
     def test_index_by_admin_succeeds(self, admin_client):
-        ManagementGroup.objects.create(name='開発チーム')
+        ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = admin_client.get('/management_groups/')
         assert response.status_code == 200
@@ -30,14 +30,14 @@ class TestManagementGroupShowView:
 
     # 管理者以外がアクセスすると403が返ることを確認
     def test_show_by_non_admin_returns_403(self, auth_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = auth_client.get(f'/management_groups/{group.id}/')
         assert response.status_code == 403
 
     # 管理者は詳細を取得できることを確認
     def test_show_by_admin_succeeds(self, admin_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = admin_client.get(f'/management_groups/{group.id}/')
         assert response.status_code == 200
@@ -63,6 +63,7 @@ class TestManagementGroupCreateView:
         response = admin_client.post('/management_groups/new/', {
             'name': '開発チーム',
             'members': [sample_user.id],
+            'is_admin': True,
         })
 
         group = ManagementGroup.objects.get(name='開発チーム')
@@ -75,18 +76,19 @@ class TestManagementGroupEditView:
 
     # 管理者以外がアクセスすると403が返ることを確認
     def test_edit_by_non_admin_returns_403(self, auth_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = auth_client.get(f'/management_groups/{group.id}/edit/')
         assert response.status_code == 403
 
     # 有効なデータでPOSTすると更新され詳細ページにリダイレクトされることを確認
     def test_post_valid_data_updates_group_and_redirects(self, admin_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = admin_client.post(f'/management_groups/{group.id}/edit/', {
             'name': '運用チーム',
             'members': [],
+            'is_admin': True,
         })
 
         group.refresh_from_db()
@@ -99,7 +101,7 @@ class TestManagementGroupDeleteView:
 
     # 管理者以外がアクセスすると403が返ることを確認
     def test_delete_by_non_admin_returns_403(self, auth_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = auth_client.post(f'/management_groups/{group.id}/delete/')
         assert response.status_code == 403
@@ -107,7 +109,7 @@ class TestManagementGroupDeleteView:
 
     # 管理者はPOSTで削除でき、一覧ページにリダイレクトされることを確認
     def test_post_deletes_group_and_redirects_to_index(self, admin_client):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         response = admin_client.post(f'/management_groups/{group.id}/delete/')
 

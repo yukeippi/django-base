@@ -1,35 +1,63 @@
 import pytest
-from django.db import IntegrityError
-from app.models import ManagementGroup
+from django.core.exceptions import ValidationError
+from app.models import Company, Department, ManagementGroup
 
 
 # ManagementGroupモデルのテストクラス
 @pytest.mark.django_db
 class TestManagementGroupModel:
 
-    # 名前のみでグループを作成できることを確認
-    def test_create_with_name_only(self):
-        group = ManagementGroup.objects.create(name='開発チーム')
+    # is_admin=Trueなら部門なしでグループを作成できることを確認
+    def test_create_admin_group_without_department(self):
+        group = ManagementGroup.objects.create(name='全社管理者グループ', is_admin=True)
 
         assert group.id is not None
-        assert group.name == '開発チーム'
+        assert group.name == '全社管理者グループ'
+        assert group.department is None
+
+    # is_admin=Falseの場合は部門を指定してグループを作成できることを確認
+    def test_create_non_admin_group_with_department(self):
+        department = _create_department('開発部')
+
+        group = ManagementGroup.objects.create(name='開発部管理グループ', department=department)
+
+        assert group.id is not None
+        assert group.is_admin is False
+        assert group.department == department
+
+    # is_admin=Falseなのに部門が未設定の場合はエラーになることを確認
+    def test_department_required_when_not_admin(self):
+        with pytest.raises(ValidationError):
+            ManagementGroup.objects.create(name='不正なグループ')
+
+    # is_admin=Trueなのに部門が設定されている場合はエラーになることを確認
+    def test_department_forbidden_when_admin(self):
+        department = _create_department('開発部')
+
+        with pytest.raises(ValidationError):
+            ManagementGroup.objects.create(name='不正なグループ', is_admin=True, department=department)
 
     # 名前が重複する場合はエラーになることを確認
     def test_name_must_be_unique(self):
-        ManagementGroup.objects.create(name='開発チーム')
+        ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
-        with pytest.raises(IntegrityError):
-            ManagementGroup.objects.create(name='開発チーム')
+        with pytest.raises(ValidationError):
+            ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
     # メンバーを複数のユーザーで構成できることを確認
     def test_members_can_have_multiple_users(self, sample_user, other_user):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
         group.members.add(sample_user, other_user)
 
         assert group.members.count() == 2
 
     # __str__が名前を返すことを確認
     def test_str_returns_name(self):
-        group = ManagementGroup.objects.create(name='開発チーム')
+        group = ManagementGroup.objects.create(name='開発チーム', is_admin=True)
 
         assert str(group) == '開発チーム'
+
+
+def _create_department(name):
+    company = Company.objects.create(name=f'{name}の会社')
+    return Department.objects.create(company=company, name=name)
