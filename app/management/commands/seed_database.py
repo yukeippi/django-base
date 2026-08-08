@@ -8,9 +8,9 @@ class Command(BaseCommand):
 
     def handle(self, *_args, **_options):
         seeds.employee.create()
-        seeds.management_group.create()
         seeds.company.create()
         seeds.department.create()
+        seeds.management_group.create()
         seeds.employee_department.create()
 
         self.stdout.write(self.style.SUCCESS(
