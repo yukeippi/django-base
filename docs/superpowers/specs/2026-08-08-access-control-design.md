@@ -21,7 +21,7 @@
 - 対象外:
   - フィールド単位(カラム)権限の実際のテンプレート・フォームへの組み込み(判定APIは用意するが、現状の12件のTODOはいずれもレコード単位の制御であり、フィールド単位を要求するものが無いため)
   - `execute`アクションを実際に使う具体的な業務操作(現時点でCompany/Department/EmployeeのCRUD画面に対応する操作が無い。将来の拡張に備えて型として用意するのみ)
-  - スコープ種別`field_value`(部門階層と無関係な、任意フィールド値による絞り込み。例:「会社区分=1のみアクセス可」)の実装(形式としては受け入れられるように設計するが、今回はルールとして書かない)
+  - `own`(自分自身のレコードのみ)に相当する概念は、このアプリには存在しないため扱わない
 
 ## 権限モデルの全体像
 
@@ -47,8 +47,8 @@ app/permissions/
 ├── access.py            # 新規: can_view/can_create/can_edit/can_delete/can_execute(レコード・カラム権限判定)
 └── rule_sets/
     ├── __init__.py       # 各ルールセットファイルをimportしREGISTRY(番号→ルールセット)を構築する
-    ├── 01_department_manager.py
-    └── 02_department_viewer.py
+    ├── 01_department_viewer_all.py
+    └── 02_company_scoped_department_manager.py
 ```
 
 `app/tests/unit/lib/permissions_test.py`は`app/tests/unit/permissions/roles_test.py`・`access_test.py`・`rule_sets_test.py`に分割移動する(既存規約「`tests/unit/`はソース側ディレクトリに対応」に従う)。
@@ -78,140 +78,171 @@ permission_set_id = models.IntegerField(null=True, blank=True, verbose_name='権
 
 権限セットは実運用で2つ以上存在し、今後も追加されていく想定。DBの管理画面から動的に編集させるのではなく、Pythonファイルとして1セット1ファイルで管理し、Gitでレビュー・履歴管理できるようにする(既存の`app/seeds/`が「モデルごとにファイルを分け、`__init__.py`で明示的にimportする」パターンを踏襲)。
 
-### ルール形式の決定経緯(実装時にコードコメントとして残すこと)
+### 設計の決定経緯(実装時に`app/permissions/rule_sets/__init__.py`の先頭コメントとして残すこと)
 
-以下の2案を比較検討した。
+**ルールの並べ方**について、以下の2案を比較検討した。
 
-1. **Claude Codeのsettings.json方式**(`allow`/`deny`のパターン文字列配列。例: `"Employee(department_tree):view"`)
-   - 長所: 1行が短い
-   - 短所: モデル・スコープ・アクション・フィールドを1つの文字列に詰め込むため、後から表の列に分解するにはパターンのパースが必要になる。パターンの優先順位(具体的なパターン vs ワイルドカード)判定も別途必要
+1. **Claude Codeのsettings.json方式**(`allow`/`deny`のパターン文字列配列。例: `"Employee(department):view"`)
+   - 短所: モデル・スコープ・アクション・フィールドを1つの文字列に詰め込むため、後から表の列に分解するにはパターンのパースが必要になる
 2. **1行=1権限のフラットな辞書リスト**(採用)
    - 長所: `model`/`level`/`action`/`scope`/`effect`が最初から列として分離されているため、パース不要でそのまま表になる。今回の目的である「AIが表にまとめてConfluenceに記述する」運用に直結する
-   - 短所: 1行がやや長い
 
-**採用理由**: 権限セットのドキュメント化(AIが表に変換してConfluenceに記述する運用)を優先し、2番目の形式を採用した。この経緯は`app/permissions/rule_sets/__init__.py`の先頭にコメントとして残す。
+**スコープの表現方法**についても、以下の案を検討した。
+
+1. `own`/`department`/`department_tree`/`company`/`all`のような固定の列挙型 → 実際の業務要件(例:「部門は原則アクセス不可だが特定の管理グループは全部門にアクセス可能」「会社情報は全員閲覧可能だが特定の会社の部門情報にのみアクセス可能な管理グループがある」)には合わず、部門階層を辿る計算(`department_tree`)のような「決まった計算式」では表現しきれないケースが多いことが分かった
+2. **フィールドパス→期待値の辞書によるフィルタ**(採用。詳細は後述の「スコープの表現方法」節)
+
+**採用理由**: 権限セットのドキュメント化(AIが表に変換してConfluenceに記述する運用)を優先して1を、業務要件の実例に基づき固定列挙型では対応できないと判断して2を、それぞれ採用した。この経緯は`app/permissions/rule_sets/__init__.py`の先頭にコメントとして残す。
 
 ### ファイル形式
 
 ```python
-# app/permissions/rule_sets/01_department_manager.py
+# app/permissions/rule_sets/01_department_viewer_all.py
+# 「部門情報は原則アクセス不可だが、全部門を閲覧できる」権限セットの例
 
 ID = 1
-NAME = '部門管理者'
-DESCRIPTION = '自部門および配下部門(部門ツリー)の社員・部門情報を管理する権限セット。会社情報は閲覧のみ許可する。'
+NAME = '全部門閲覧者'
+DESCRIPTION = '部門情報を、会社・部門を問わず全件閲覧できる権限セット。編集・削除・作成は不可。'
 
 RULES = [
-    # --- レコード権限 ---
-    {'model': 'Employee', 'level': 'record', 'action': 'view', 'scope': {'type': 'department_tree'}, 'effect': 'permit'},
-    {'model': 'Employee', 'level': 'record', 'action': 'create', 'scope': {'type': 'department_tree'}, 'effect': 'permit'},
-    {'model': 'Employee', 'level': 'record', 'action': 'edit', 'scope': {'type': 'department_tree'}, 'effect': 'permit'},
-    {'model': 'Employee', 'level': 'record', 'action': 'delete', 'scope': {'type': 'department_tree'}, 'effect': 'deny',
-     'note': '社員の削除は全社管理者のみ(部門管理者は不可)'},
-    {'model': 'Employee', 'level': 'record', 'action': 'execute', 'scope': {'type': 'department_tree'}, 'effect': 'deny'},
+    {'model': 'Department', 'level': 'record', 'action': 'view', 'scope': {}, 'effect': 'allow'},
+    {'model': 'Department', 'level': 'record', 'action': 'create', 'scope': {}, 'effect': 'deny'},
+    {'model': 'Department', 'level': 'record', 'action': 'edit', 'scope': {}, 'effect': 'deny'},
+    {'model': 'Department', 'level': 'record', 'action': 'delete', 'scope': {}, 'effect': 'deny'},
+    {'model': 'Department', 'level': 'record', 'action': 'execute', 'scope': {}, 'effect': 'deny'},
+]
+```
 
-    {'model': 'Department', 'level': 'record', 'action': 'view', 'scope': {'type': 'department_tree'}, 'effect': 'permit'},
-    {'model': 'Department', 'level': 'record', 'action': 'create', 'scope': {'type': 'department_tree'}, 'effect': 'deny'},
-    {'model': 'Department', 'level': 'record', 'action': 'edit', 'scope': {'type': 'department_tree'}, 'effect': 'deny'},
-    {'model': 'Department', 'level': 'record', 'action': 'delete', 'scope': {'type': 'department_tree'}, 'effect': 'deny'},
-    {'model': 'Department', 'level': 'record', 'action': 'execute', 'scope': {'type': 'department_tree'}, 'effect': 'deny'},
+```python
+# app/permissions/rule_sets/02_company_scoped_department_manager.py
+# 「会社情報は全員閲覧可能、特定の会社の部門情報のみ閲覧・編集できる」権限セットの例
 
-    {'model': 'Company', 'level': 'record', 'action': 'view', 'scope': {'type': 'company'}, 'effect': 'permit'},
-    {'model': 'Company', 'level': 'record', 'action': 'create', 'scope': {'type': 'company'}, 'effect': 'deny'},
-    {'model': 'Company', 'level': 'record', 'action': 'edit', 'scope': {'type': 'company'}, 'effect': 'deny'},
-    {'model': 'Company', 'level': 'record', 'action': 'delete', 'scope': {'type': 'company'}, 'effect': 'deny'},
-    {'model': 'Company', 'level': 'record', 'action': 'execute', 'scope': {'type': 'company'}, 'effect': 'deny'},
+ID = 2
+NAME = 'サンプル株式会社 部門管理者'
+DESCRIPTION = 'サンプル株式会社に属する部門情報のみ閲覧・編集できる権限セット。会社情報は全社共通で閲覧のみ許可する。'
 
-    # --- カラム権限(record権限がpermitの範囲でのみ意味を持つ。今回はテンプレート・フォームへの組み込みは行わない) ---
-    {'model': 'Employee', 'level': 'field', 'field': 'employee_number', 'action': 'edit', 'effect': 'deny',
-     'note': '社員番号(ログインID)は部門管理者からは変更できない'},
+RULES = [
+    {'model': 'Company', 'level': 'record', 'action': 'view', 'scope': {}, 'effect': 'allow'},
+
+    {'model': 'Department', 'level': 'record', 'action': 'view',
+     'scope': {'company.name': 'サンプル株式会社'}, 'effect': 'allow'},
+    {'model': 'Department', 'level': 'record', 'action': 'edit',
+     'scope': {'company.name': 'サンプル株式会社'}, 'effect': 'allow'},
+    {'model': 'Department', 'level': 'record', 'action': 'create',
+     'scope': {'company.name': 'サンプル株式会社'}, 'effect': 'allow'},
+    {'model': 'Department', 'level': 'record', 'action': 'delete',
+     'scope': {'company.name': 'サンプル株式会社'}, 'effect': 'deny'},
+
+    # --- カラム権限(record権限がallowの範囲でのみ意味を持つ。今回はテンプレート・フォームへの組み込みは行わない) ---
+    {'model': 'Department', 'level': 'field', 'field': 'company', 'action': 'edit', 'effect': 'deny',
+     'note': '所属会社の変更(会社をまたぐ移動)はこの権限セットからは行えない'},
 ]
 ```
 
 - `level='record'`の行に`field`キーは無し、`level='field'`の行に`scope`キーは無し(意味を持たないため)
-- `scope`は`{'type': ...}`という辞書にし、将来`field_value`のような新しいスコープ種別を追加できる形にする(今回実装するのは下記5種類のみ)
+- `scope`は`{}`(絞り込み無し=全件一致)か、`{'フィールドパス': 期待値}`の辞書。`'company.name'`のように`.`区切りで関連先フィールドを辿れる
+- `effect`は`'allow'`/`'deny'`の2種類(AWS IAM・Kubernetes・Claude Code設定ファイル等、現代のアクセス制御で広く使われる語を採用。`permit`は使わない)
 - `note`は任意の人間向け説明(表のドキュメント化で「備考」列に使う)
 - ルールに存在しない組み合わせは常にデフォルト`deny`
 
 ### `app/permissions/rule_sets/__init__.py`
 
 ```python
-# ルール形式の決定経緯: docs/superpowers/specs/2026-08-08-access-control-design.md 参照
-# (Claude Code settings.json風のallow/denyパターン文字列ではなく、AIが表に変換してConfluenceに
-#  転記しやすいよう「1行=1権限」のフラットな辞書リスト形式を採用した)
+# 設計の決定経緯: docs/superpowers/specs/2026-08-08-access-control-design.md 参照
+# - ルール形式: Claude Code settings.json風のallow/denyパターン文字列ではなく、AIが表に変換して
+#   Confluenceに転記しやすいよう「1行=1権限」のフラットな辞書リスト形式を採用した
+# - スコープ形式: 部門階層等の固定列挙型ではなく、実際の業務要件に合わせて任意のフィールドパスで
+#   絞り込める汎用フィルタ辞書を採用した
 
-from . import department_manager
-from . import department_viewer
+from . import department_viewer_all
+from . import company_scoped_department_manager
 
 REGISTRY = {
-    department_manager.ID: department_manager,
-    department_viewer.ID: department_viewer,
+    department_viewer_all.ID: department_viewer_all,
+    company_scoped_department_manager.ID: company_scoped_department_manager,
 }
 ```
 
 新しい権限セットを追加する時は、`rule_sets/`にファイルを1つ追加し、`__init__.py`に1行importとREGISTRYへの登録を足すだけでよい。
 
-## スコープ種別
+## スコープの表現方法
 
-| type | 意味 |
-|---|---|
-| `own` | 自分自身のレコードのみ(現状Employeeにのみ意味を持つ。`employee.user == user`) |
-| `department` | `ManagementGroup.department`(割当部門)自体のみ |
-| `department_tree` | 割当部門 + 配下の子部門(`DepartmentHierarchy`を再帰的に辿った全階層) |
-| `company` | 割当部門が属する`Company`全体 |
-| `all` | 全件(`is_admin=True`は常にこれと同義としてハードコード) |
-| `field_value`(将来・未実装) | 任意のフィールド値による絞り込み(例: `{'type': 'field_value', 'field': 'category', 'values': [1]}`) |
+`scope`はDjangoの`QuerySet.filter(**kwargs)`のような「フィールドパス→期待値」の辞書だが、実際の絞り込みはDBに問い合わせず、Python側で対象の属性を直接辿って比較する(`index`一覧のフィルタリング・`show`/`edit`/`delete`の既存レコードチェック・`create`のフォーム入力値チェックのすべてで同じ評価関数を使い回すため)。
 
-`department_tree`は、ロール決定ロジックの「自分自身・親・兄弟」判定(1階層のみ)とは別物であることに注意。こちらは`DepartmentHierarchy.child_hierarchies`を起点に何階層でも再帰的に子部門を辿る。
+```python
+# app/permissions/access.py
+
+# scopeの各条件がtargetに一致するかを判定する
+def _matches(target, scope):
+    for path, expected in scope.items():
+        actual = _resolve_path(target, path)
+        if isinstance(expected, (list, tuple, set)):
+            if actual not in expected:
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
+# 'company.name'のような'.'区切りのパスをtargetの属性から辿って値を取得する
+def _resolve_path(target, path):
+    value = target
+    for attr in path.split('.'):
+        value = getattr(value, attr)
+    return value
+```
+
+- `path`が`target`に存在しない属性を指す場合(ルールファイルのフィールド名の誤り等)は`AttributeError`をそのまま送出する(サイレントに`deny`扱いにせず、設定ミスとして検知できるようにする)。`rule_sets_test.py`でルールセットごとに代表的なインスタンスを使い評価が例外にならないことを検証する
 
 ## 権限判定API
 
 ```python
 # app/permissions/access.py
 def can_view(user, model_name, instance, field=None): ...
-def can_create(user, model_name, department=None): ...   # departmentは作成しようとしているレコードの所属部門。Companyの場合はNone
+def can_create(user, model_name, candidate): ...   # candidateはフォームのcleaned_dataから組み立てた未保存インスタンス
 def can_edit(user, model_name, instance, field=None): ...
 def can_delete(user, model_name, instance): ...
 def can_execute(user, model_name, instance): ...
 ```
 
-### `create`のスコープ判定の特殊性
+### `create`の判定
 
-`create`時点では対象`instance`がまだ存在しないため、他アクションのように「既存レコードの部門」と比較できない。フォームの入力値(作成しようとしている部門)を`department`引数として渡して判定する。
-
-- `own`スコープは`create`に対して常に不一致(まだ自分のレコードが存在しないため)
-- `company`スコープは`department`引数が`None`(=Company作成)の場合は不一致。`all`スコープ(実質`is_admin`)のみCompanyを作成できる
+`create`時点では対象レコードがまだDBに存在しないため、フォームの`cleaned_data`から`Model(**cleaned_data)`(保存はしない)を組み立て、`instance`と同じように`_matches()`にかける。
 
 ### 複数グループ判定のマージロジック(3状態)
 
-ユーザーに適用される`ManagementGroup`(`get_applicable_management_groups`で取得)ごとに、対象レコード(または`create`時は対象部門)に対する判定を求める。各グループの判定は以下の3状態のいずれかになる。
+ユーザーに適用される`ManagementGroup`(`get_applicable_management_groups`で取得)ごとに、対象(既存レコード、または`create`時は未保存の候補インスタンス)に対する判定を求める。各グループの判定は以下の3状態のいずれかになる。
 
 1. **棄権**: グループの`scope`が対象に一致しない(そのグループは何も主張しない)
-2. **`permit`**: `scope`が一致し、該当するルールの`effect`が`permit`
+2. **`allow`**: `scope`が一致し、該当するルールの`effect`が`allow`
 3. **`deny`**: `scope`が一致し、該当するルールの`effect`が`deny`、またはそもそも該当するルールが無い(デフォルト拒否)
 
-最終判定は、棄権を無視した上で「1つでも`deny`があれば`deny`、それ以外に`permit`が1つでもあれば`permit`、誰も判定しなければ`deny`」とする(deny優先)。
+最終判定は、棄権を無視した上で「1つでも`deny`があれば`deny`、それ以外に`allow`が1つでもあれば`allow`、誰も判定しなければ`deny`」とする(deny優先)。
 
-*棄権を`deny`と同列に扱うと、対象外のグループが存在するだけで他グループの`permit`を打ち消してしまうため、明示的に区別する。*
+*棄権を`deny`と同列に扱うと、対象外のグループが存在するだけで他グループの`allow`を打ち消してしまうため、明示的に区別する。*
 
 ```python
-def _check(user, model_name, action, instance=None, field=None, department=None):
+def _check(user, model_name, action, instance=None, field=None):
     decisions = [
-        _decide(group, model_name, action, instance, field, department)
+        _decide(group, model_name, action, instance, field)
         for group in get_applicable_management_groups(user)
     ]
     decisions = [d for d in decisions if d is not None]  # 棄権を除外
     if 'deny' in decisions:
         return False
-    return 'permit' in decisions
+    return 'allow' in decisions
 
 
-def _decide(group, model_name, action, instance, field, department):
+def _decide(group, model_name, action, instance, field):
     if group.is_admin:
-        return 'permit'
+        return 'allow'
     rule_set = rule_sets.REGISTRY[group.permission_set_id]
-    # scopeが対象に一致するかを判定し、一致しなければNone(棄権)を返す
-    # 一致すれば、該当ルールのeffect('permit'/'deny')、ルールが無ければ'deny'を返す
-    ...
+    rule = _find_rule(rule_set, model_name, action, field)
+    if rule is None:
+        return 'deny'
+    if not _matches(instance, rule['scope']):
+        return None  # 棄権
+    return rule['effect']
 ```
 
 ## ビューへの組み込み方針
@@ -219,26 +250,26 @@ def _decide(group, model_name, action, instance, field, department):
 - **`index`(一覧)**: 全件取得 → Pythonの`can_view`でフィルタ → `Paginator`にフィルタ後のリストを渡す(`Paginator`はクエリセットだけでなくリストにも使えるため)。今回のデータ規模ではSQL側での絞り込みは行わず、シンプルさを優先する
 - **`show`/`edit`/`delete`**: `get_object_or_404`の後に`can_view`/`can_edit`/`can_delete`をチェックし、不許可なら403(`HttpResponseForbidden`)を返す。既存の`management_group`ビューのテストパターン(403返却)に合わせる
 - **`new`(作成)**:
-  - GET: 適用グループのいずれかが対象モデルに対して`create`の`permit`を持てば(部門はまだ未確定のため広めに)フォームを表示する
-  - POST: 送信された部門の値を使い`can_create(user, model_name, department=...)`で判定する
+  - GET: 適用グループのいずれかが対象モデルに対して`create`の`allow`を持てば(具体的な入力値はまだ無いため広めに)フォームを表示する
+  - POST: `form.cleaned_data`から未保存インスタンスを組み立て、`can_create(user, model_name, candidate)`で判定する
 - **カラム権限(表示/編集)**: `can_view`/`can_edit`のフィールド版APIは`access.py`に実装するが、テンプレート・フォームへの組み込みは今回のスコープ外(元の12件のTODOはいずれもレコード単位のため)
 
 ## テスト方針
 
 - `app/tests/unit/permissions/roles_test.py`(`app/tests/unit/lib/permissions_test.py`から移動、内容はそのまま)
 - `app/tests/unit/permissions/access_test.py`(新規): `can_view`/`can_create`/`can_edit`/`can_delete`/`can_execute`の判定ロジック。スコープ一致・棄権・deny優先マージ・`is_admin`のハードコード動作を検証
-- `app/tests/unit/permissions/rule_sets_test.py`(新規): `REGISTRY`内の全ルールセットが定義形式(必須キーの組み合わせ)を満たしていることを検証する構造チェック(ファイルを増やす運用のため、壊れたルールセットを早期検知する安全網)
+- `app/tests/unit/permissions/rule_sets_test.py`(新規): `REGISTRY`内の全ルールセットが定義形式(必須キーの組み合わせ)を満たしていること、代表的なインスタンスに対して`_matches()`が例外なく評価できることを検証する(ファイルを増やす運用のため、壊れたルールセットを早期検知する安全網)
 - `app/tests/unit/models/management_group_test.py`: `permission_set_id`追加に伴うテスト更新
-- `app/tests/unit/views/company_test.py`/`department_test.py`/`employee_test.py`: 既存テストは`auth_client`(どの`ManagementGroup`にも属さない一般ユーザー)で作成・編集・削除が成功する前提になっているため、`management_group_test.py`で確立したパターン(403確認 + `admin_client`や部門スコープ内ユーザーでの成功確認)に合わせて全面的に書き換える
+- `app/tests/unit/views/company_test.py`/`department_test.py`/`employee_test.py`: 既存テストは`auth_client`(どの`ManagementGroup`にも属さない一般ユーザー)で作成・編集・削除が成功する前提になっているため、`management_group_test.py`で確立したパターン(403確認 + `admin_client`や権限セットを持つユーザーでの成功確認)に合わせて全面的に書き換える
 
 ## エッジケース・データ整合性
 
 - **`permission_set_id`が`REGISTRY`に存在しない値**: `ManagementGroup.clean()`でエラーにする
 - **`is_admin=True`かつ`permission_set_id`が設定されている**: エラーにする(`department`と同様の整合性ルール)
-- **ルールセットファイルの構造不正**(必須キー欠落等): `rule_sets_test.py`で検知する。実行時には`access.py`側で必要なキーが無ければ例外を送出する(サイレントに無視しない)
+- **ルールセットファイルの構造不正**(必須キー欠落等): `rule_sets_test.py`で検知する
+- **`scope`のフィールドパスが対象に存在しない**(ルールファイルの誤り): `_resolve_path`が`AttributeError`を送出し、サイレントに`deny`にはしない
 
 ## 今後の課題(スコープ外)
 
 - カラム権限(フィールド単位のview/edit)を実際にテンプレート・フォームへ組み込む
 - `execute`アクションを使う具体的な業務操作の実装
-- スコープ種別`field_value`(任意フィールド値による絞り込み)の実装
