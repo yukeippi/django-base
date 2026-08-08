@@ -1,5 +1,5 @@
 import pytest
-from app.lib.permissions import can_delete_task, can_edit_task, get_applicable_management_groups, is_admin
+from app.permissions.roles import can_delete_task, can_edit_task, get_applicable_management_groups, is_admin
 from app.models import Company, Department, DepartmentHierarchy, EmployeeDepartment, ManagementGroup, Task
 
 
