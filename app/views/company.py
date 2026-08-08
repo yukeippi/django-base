@@ -1,17 +1,20 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from app.forms import CompanyForm
 from app.models import Company
+from app.permissions.access import can_create, can_delete, can_display_create_form, can_edit, can_view
+
+MODEL_NAME = 'Company'
 
 
 # 会社一覧
-# TODO: 権限制御を再設計後、閲覧範囲を絞り込む
 @login_required
 def index(request):
-    companies_qs = Company.objects.all()
-    paginator = Paginator(companies_qs, 10)
+    companies = [company for company in Company.objects.all() if can_view(request.user, MODEL_NAME, company)]
+    paginator = Paginator(companies, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'app/company/index.html', {
         'companies': page_obj,
@@ -23,33 +26,38 @@ def index(request):
 @login_required
 def show(request, pk):
     company = get_object_or_404(Company, pk=pk)
+    if not can_view(request.user, MODEL_NAME, company):
+        raise PermissionDenied
     return render(request, 'app/company/show.html', {'company': company})
 
 
 # 会社新規作成
-# TODO: 権限制御を再設計後、作成可否をチェックする
 @login_required
 def new(request):
+    if not can_display_create_form(request.user, MODEL_NAME):
+        raise PermissionDenied
     if request.method == 'POST':
         return _create_company(request)
     return _display_new_form(request)
 
 
 # 会社編集
-# TODO: 権限制御を再設計後、編集可否をチェックする
 @login_required
 def edit(request, pk):
     company = get_object_or_404(Company, pk=pk)
+    if not can_edit(request.user, MODEL_NAME, company):
+        raise PermissionDenied
     if request.method == 'POST':
         return _update_company(request, company)
     return _display_edit_form(request, company)
 
 
 # 会社削除
-# TODO: 権限制御を再設計後、削除可否をチェックする
 @login_required
 def delete(request, pk):
     company = get_object_or_404(Company, pk=pk)
+    if not can_delete(request.user, MODEL_NAME, company):
+        raise PermissionDenied
     if request.method == 'POST':
         company.delete()
         messages.success(request, '会社を削除しました。')
@@ -71,11 +79,14 @@ def _display_new_form(request):
 # 会社の新規作成処理を行う
 def _create_company(request):
     form = CompanyForm(request.POST)
-    if form.is_valid():
-        company = form.save()
-        messages.success(request, '会社を作成しました。')
-        return redirect('app:company_show', pk=company.pk)
-    return _render_new_form(request, form)
+    if not form.is_valid():
+        return _render_new_form(request, form)
+    candidate = Company(**form.cleaned_data)
+    if not can_create(request.user, MODEL_NAME, candidate):
+        raise PermissionDenied
+    company = form.save()
+    messages.success(request, '会社を作成しました。')
+    return redirect('app:company_show', pk=company.pk)
 
 
 # 会社新規作成フォームのレンダリング
