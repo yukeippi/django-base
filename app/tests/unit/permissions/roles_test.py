@@ -61,7 +61,7 @@ class TestGetApplicableManagementGroups:
     def test_group_assigned_to_own_department_applies(self, sample_user):
         department = _create_department('開発部')
         _set_primary_department(sample_user, department)
-        group = ManagementGroup.objects.create(name='開発部グループ', department=department)
+        group = ManagementGroup.objects.create(name='開発部グループ', department=department, permission_set_id=1)
         group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -75,7 +75,7 @@ class TestGetApplicableManagementGroups:
         child = Department.objects.create(company=company, name='営業部')
         DepartmentHierarchy.objects.create(department=child, parent_department=parent)
         _set_primary_department(sample_user, child)
-        group = ManagementGroup.objects.create(name='本社グループ', department=parent)
+        group = ManagementGroup.objects.create(name='本社グループ', department=parent, permission_set_id=1)
         group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -91,7 +91,7 @@ class TestGetApplicableManagementGroups:
         DepartmentHierarchy.objects.create(department=sales, parent_department=parent)
         DepartmentHierarchy.objects.create(department=hr, parent_department=parent)
         _set_primary_department(sample_user, sales)
-        group = ManagementGroup.objects.create(name='人事部グループ', department=hr)
+        group = ManagementGroup.objects.create(name='人事部グループ', department=hr, permission_set_id=1)
         group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -104,7 +104,7 @@ class TestGetApplicableManagementGroups:
         own_department = Department.objects.create(company=company, name='開発部')
         unrelated_department = Department.objects.create(company=company, name='総務部')
         _set_primary_department(sample_user, own_department)
-        group = ManagementGroup.objects.create(name='総務部グループ', department=unrelated_department)
+        group = ManagementGroup.objects.create(name='総務部グループ', department=unrelated_department, permission_set_id=1)
         group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -124,7 +124,7 @@ class TestGetApplicableManagementGroups:
     def test_non_member_does_not_get_group_applied(self, sample_user):
         department = _create_department('開発部')
         _set_primary_department(sample_user, department)
-        ManagementGroup.objects.create(name='開発部グループ', department=department)
+        ManagementGroup.objects.create(name='開発部グループ', department=department, permission_set_id=1)
 
         applicable = get_applicable_management_groups(sample_user)
 
@@ -133,7 +133,7 @@ class TestGetApplicableManagementGroups:
     # 主務部門が無い社員には、is_admin以外のグループが適用されないことを確認
     def test_employee_without_primary_department_only_gets_admin_groups(self, sample_user):
         department = _create_department('開発部')
-        non_admin_group = ManagementGroup.objects.create(name='開発部グループ', department=department)
+        non_admin_group = ManagementGroup.objects.create(name='開発部グループ', department=department, permission_set_id=1)
         non_admin_group.members.add(sample_user)
         admin_group = ManagementGroup.objects.create(name='全社管理者グループ', is_admin=True)
         admin_group.members.add(sample_user)
@@ -145,7 +145,7 @@ class TestGetApplicableManagementGroups:
     # Employeeが無いユーザーには、is_admin以外のグループが適用されないことを確認
     def test_user_without_employee_only_gets_admin_groups(self, admin_user):
         department = _create_department('開発部')
-        non_admin_group = ManagementGroup.objects.create(name='開発部グループ', department=department)
+        non_admin_group = ManagementGroup.objects.create(name='開発部グループ', department=department, permission_set_id=1)
         non_admin_group.members.add(admin_user)
         admin_group = ManagementGroup.objects.create(name='全社管理者グループ', is_admin=True)
         admin_group.members.add(admin_user)
@@ -158,7 +158,7 @@ class TestGetApplicableManagementGroups:
     def test_multiple_groups_can_apply_simultaneously(self, sample_user):
         department = _create_department('開発部')
         _set_primary_department(sample_user, department)
-        own_group = ManagementGroup.objects.create(name='開発部グループ', department=department)
+        own_group = ManagementGroup.objects.create(name='開発部グループ', department=department, permission_set_id=1)
         own_group.members.add(sample_user)
         admin_group = ManagementGroup.objects.create(name='全社管理者グループ', is_admin=True)
         admin_group.members.add(sample_user)
@@ -173,9 +173,9 @@ class TestGetApplicableManagementGroups:
         own_department = Department.objects.create(company=company, name='開発部')
         other_department = Department.objects.create(company=company, name='営業部')
         _set_primary_department(sample_user, own_department)
-        matching_group = ManagementGroup.objects.create(name='開発部グループ', department=own_department)
+        matching_group = ManagementGroup.objects.create(name='開発部グループ', department=own_department, permission_set_id=1)
         matching_group.members.add(sample_user)
-        other_group = ManagementGroup.objects.create(name='営業部グループ', department=other_department)
+        other_group = ManagementGroup.objects.create(name='営業部グループ', department=other_department, permission_set_id=1)
         other_group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -189,7 +189,7 @@ class TestGetApplicableManagementGroups:
         child = Department.objects.create(company=company, name='営業部')
         DepartmentHierarchy.objects.create(department=child, parent_department=parent)
         _set_primary_department(sample_user, parent)
-        group = ManagementGroup.objects.create(name='営業部グループ', department=child)
+        group = ManagementGroup.objects.create(name='営業部グループ', department=child, permission_set_id=1)
         group.members.add(sample_user)
 
         applicable = get_applicable_management_groups(sample_user)
@@ -204,7 +204,7 @@ class TestGetApplicableManagementGroups:
         DepartmentHierarchy.objects.create(department=top_level_department)
         _set_primary_department(sample_user, top_level_department)
         other_department = Department.objects.create(company=company, name='営業部')
-        group = ManagementGroup.objects.create(name='不正データグループ', department=other_department)
+        group = ManagementGroup.objects.create(name='不正データグループ', department=other_department, permission_set_id=1)
         group.members.add(sample_user)
         # full_clean()を経由するsave()ではdepartment=NULLは弾かれるため、
         # migrate直後のデータ等を再現するために.update()でDBを直接書き換える

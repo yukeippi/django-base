@@ -21,4 +21,9 @@ class Migration(migrations.Migration):
             name='is_admin',
             field=models.BooleanField(default=False, verbose_name='全社管理者'),
         ),
+        migrations.AddField(
+            model_name='managementgroup',
+            name='permission_set_id',
+            field=models.IntegerField(blank=True, null=True, verbose_name='権限セット番号'),
+        ),
     ]
