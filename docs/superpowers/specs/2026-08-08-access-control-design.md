@@ -78,6 +78,8 @@ permission_set_id = models.IntegerField(null=True, blank=True, verbose_name='権
 
 権限セットは実運用で2つ以上存在し、今後も追加されていく想定。DBの管理画面から動的に編集させるのではなく、Pythonファイルとして1セット1ファイルで管理し、Gitでレビュー・履歴管理できるようにする(既存の`app/seeds/`が「モデルごとにファイルを分け、`__init__.py`で明示的にimportする」パターンを踏襲)。
 
+**起動時の読み込み・キャッシュ**: Pythonのimportは、あるモジュールを最初にimportした時点で1度だけ実行され、以降は`sys.modules`にキャッシュされた結果が再利用される(2回目以降のimportはファイルを再読み込みしない)。`app/permissions/rule_sets/__init__.py`はDjangoプロセスの起動時(`app.permissions.access`等、これをimportするモジュールが最初にロードされるタイミング)に1度だけ実行されて`REGISTRY`を構築し、以降はプロセスが生きている間メモリ上の`REGISTRY`がそのまま使い回される。この仕組みにより、キャッシュ用の独自コード(Djangoの`AppConfig.ready()`や`cache`フレームワーク等)を別途書く必要はない。
+
 ### 設計の決定経緯(実装時に`app/permissions/rule_sets/__init__.py`の先頭コメントとして残すこと)
 
 **ルールの並べ方**について、以下の2案を比較検討した。
