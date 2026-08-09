@@ -1,8 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
-from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
+from app.forms import EmployeeLoginForm
 
 
 # ログイン
@@ -27,13 +27,13 @@ def logout(request):
 
 # ログインフォームを表示する
 def _display_login_form(request):
-    form = AuthenticationForm(request)
+    form = EmployeeLoginForm(request)
     return _render_login_form(request, form)
 
 
 # ログイン処理を行う
 def _authenticate_user(request):
-    form = AuthenticationForm(request, data=request.POST)
+    form = EmployeeLoginForm(request, data=request.POST)
     if not form.is_valid():
         return _render_login_form(request, form)
     auth_login(request, form.get_user())

@@ -1,11 +1,6 @@
-{% extends 'layouts/default.html' %}
-{% load static %}
+{% extends 'app/task/base.html' %}
 
 {% block title %}タスク一覧{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'app/task.css' %}">
-{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">

@@ -1,5 +1,10 @@
 # Django Development Guidelines
 
+> **このファイルの位置づけ**: 別のDjangoプロジェクトにそのままコピーして使う、再利用可能な開発規約集(`CLAUDE.md`が「雛形として引き継ぐ」と定義している章の一つ)。書く内容は「このプロジェクトの現在の状態」ではなく、Djangoプロジェクト一般に適用できる規約・パターンにすること。
+>
+> - 各ルールの例に出てくる`Task`/`Employee`等のモデル名は、あくまでパターンを説明するための例示。実際のこのプロジェクトのモデル・ファイル構成と完全に一致している必要はない(コピー先の別プロジェクトではどのみち別のモデル名になる)
+> - 一方、規約・パターンの説明自体に矛盾や誤りがある場合は、コピー先でも同じ混乱を招くため修正する
+
 ## File Structure Rules
 
 models、forms、views、tests、templatesはディレクトリ化し、機能ごとにファイル分割してください。
@@ -14,7 +19,7 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 
 各ディレクトリに__init__.pyを配置すること。
 
-`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/auth.py`や`app/validators.py`のように、特定のレイヤーディレクトリに属さない単発モジュールのテストは、`tests/unit/`直下に置く(例: `tests/unit/auth_test.py`, `tests/unit/validators_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
+`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`, `lib/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/lib/`(`auth.py`/`permissions.py`/`validators.py`等、app内で共有するロジック。詳細はCommon Module Rulesを参照)のテストも同様に`tests/unit/lib/`に置く(例: `tests/unit/lib/auth_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
 
 ## Layout Rules
 
@@ -46,12 +51,27 @@ app/templates/common/
 
 ## Template Rules
 
-`layouts/default.html` のような基底テンプレートを作成し、各ページのテンプレートは `{% extends %}` で継承すること。各ページ側は `{% block %}` の中身だけを記述する最小限の内容にする。
+テンプレートの継承は3段階にする。各ページ側は`{% block %}`の中身だけを記述する最小限の内容にする。
+
+1. `layouts/default.html`: サイト全体の骨格(`<head>`の共通アセット読み込みと`{% block %}`定義)。詳細はLayout Rulesを参照
+2. `app/<model>/base.html`: モデル単位の中間テンプレート。`layouts/default.html`を継承し、そのモデルの全ページで共通の`{% block %}`(モデル別CSSの読み込み等)をここで埋める。詳細はCSS Rulesを参照
+3. `app/<model>/<page>.html`: ページごとのテンプレート。`app/<model>/base.html`を継承し、`title`/`content`など、そのページ固有の`{% block %}`だけを埋める
 
 ### Example
 
 ```html
+<!-- app/article/base.html -->
 {% extends 'layouts/default.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app/article.css' %}">
+{% endblock %}
+```
+
+```html
+<!-- app/article/index.html -->
+{% extends 'app/article/base.html' %}
 
 {% block title %}記事一覧{% endblock %}
 
@@ -254,42 +274,51 @@ class Task(models.Model):
 
 CSSは「共通ファイル」と「モデルごとのファイル」に分ける。モデルごとのファイルは、そのモデルのindex/show/new/editページで共通のファイルを1つ使う(ページ単位には分けない)。
 
+自前で書くCSSは(共通・モデル別を問わず)全てDjangoアプリの`app/static/app/`に置く。トップレベルの`static/`は、Bootstrap等サードパーティ製のvendorファイル専用とする(自前のCSSと混在させない)。
+
 ### ディレクトリ構成
 
 ```
 static/
-├── common.css        # 全ページ共通のスタイル
-└── app/
-    └── task.css       # taskモデル関連ページ(index/show/new/edit)共通のスタイル
+└── vendor/            # サードパーティ製ファイル(Bootstrap等)専用
+    └── bootstrap/...
+app/static/app/
+├── common.css          # 全ページ共通のスタイル(自前CSSはここに置く)
+└── task.css            # taskモデル関連ページ(index/show/new/edit)共通のスタイル
 ```
 
 ### 読み込み方法
 
-`layouts/default.html` で `common.css` を常に読み込み、各モデルのテンプレート側で `{% block extra_css %}` を使ってモデル別CSSを読み込む。
+`layouts/default.html` で `app/common.css` を常に読み込む。モデル別CSSは、`index`/`show`/`new`/`edit`/`delete`の各ページが個別に`{% block extra_css %}`を書くと重複するため、Template Rulesの`app/<model>/base.html`(モデル単位の中間テンプレート)の`extra_css`ブロックにまとめる。`_form.html`のような`{% include %}`用パーシャルとは役割が違うため、`base.html`に`_`は付けない。
 
 ```html
 <!-- layouts/default.html -->
-<link rel="stylesheet" href="{% static 'common.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/common.css' %}">
 {% block extra_css %}{% endblock %}
-
-<!-- app/task/index.html -->
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'app/task.css' %}">
-{% endblock %}
 ```
 
 ## Common Module Rules
 
 共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/utils.py` に置く。増えてきたら `app/utils/` ディレクトリ化し、関心事ごとにファイル分割する(例: `utils/date.py`)。認証・認可のようにモデルに紐づくロジック(例: `app/auth.py`)や、ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同様に、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+- **1つのアプリ内で共有**: `app/lib/` に置く(Railsの`lib/`相当。models/views/forms等どこにも属さない、app固有の共有コードの置き場)。`urls.py`/`apps.py`/`admin.py`のような、Djangoの規約でアプリ直下に置くと決まっているファイルはそのままアプリ直下に残し、開発者が追加した「app内で共有するロジック」だけを`app/lib/`にまとめる。役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/lib/auth.py`、権限(何ができるかの判定)は`app/lib/permissions.py`、複数モデルで使い回すバリデータは`app/lib/validators.py`、汎用ユーティリティは`app/lib/utils.py`(増えてきたら`app/lib/utils/`ディレクトリ化し、関心事ごとにファイル分割する。例: `utils/date.py`)。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同じ考え方で、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+  - 例外: `app/management/commands/`(Djangoがこの場所を前提にコマンドを自動検出する)と`app/seeds/`(Seed Data Rules参照、モデルごとのデータ生成スクリプト群という別カテゴリ)は`app/lib/`に含めない。
+  - **`app/lib/`配下のモジュールが肥大化した場合の昇格**: 関心事が独立したサブシステムと呼べる規模になった場合、`app/permissions/`のように`models/`/`views/`/`forms/`等と同列のトップレベルディレクトリへ昇格してよい。昇格後は他のトップレベルディレクトリと同じ構成規則(ディレクトリ化・`__init__.py`配置・テストディレクトリの対応)に従う。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。これは実際に2つ以上のアプリから使われるようになった時点で行う。
 
 ```
 config/
 app/
-├── auth.py                  # app内で共有する認証・認可ロジック
-├── utils.py                 # app内で共有するユーティリティ
+├── urls.py                  # Djangoの規約でアプリ直下に置くファイル(そのまま)
+├── apps.py
+├── admin.py
+├── lib/                     # app内で共有する、開発者が追加したロジック
+│   ├── __init__.py
+│   ├── auth.py              # 認証ロジック(ログイン等、誰であるかの検証)
+│   ├── permissions.py       # 権限判定ロジック(何ができるかの判定)
+│   ├── validators.py        # 複数モデルで使い回すカスタムバリデータ
+│   └── utils.py             # 汎用ユーティリティ
 └── templates/
     └── common/              # appアプリ内で共有するパーシャルテンプレート
         ├── _navbar.html
@@ -302,7 +331,7 @@ common/                    # 複数アプリ間で共有するモジュール(�
 
 ## Validator Rules
 
-モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/validators.py` に置く(増えてきたら `app/utils/` と同様に `app/validators/` ディレクトリ化する)。
+モデルの複数フィールド・複数モデルで使い回したいカスタムバリデーションは、モデルファイルに直接書かず `app/lib/validators.py` に置く(増えてきたら `app/lib/utils/` と同様に `app/lib/validators/` ディレクトリ化する)。
 
 - **単純な条件で使い回さない場合**: ただの関数で書く。値を1つ受け取り、不正なら`django.core.exceptions.ValidationError`を送出するだけでよい。
 - **パラメータ化して複数箇所で使い回したい場合**: `__call__(self, value)` を実装したクラスにする(Rails の `ActiveModel::EachValidator` に相当)。インスタンス化時の引数で条件をカスタマイズできる。
@@ -311,7 +340,7 @@ common/                    # 複数アプリ間で共有するモジュール(�
 ### Example
 
 ```python
-# app/validators.py
+# app/lib/validators.py
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
 
@@ -330,7 +359,7 @@ class ContainsCharacterValidator:
 
 ```python
 # app/models/task.py
-from app.validators import ContainsCharacterValidator
+from app.lib.validators import ContainsCharacterValidator
 
 description = models.TextField(
     blank=True,
@@ -363,4 +392,122 @@ class TimestampMixin:
 
 class Task(TaskBase, TimestampMixin):
     ...
+```
+
+## Model Table Naming Rules
+
+Djangoのデフォルトのテーブル名(`<applabel>_<モデル名を小文字化しただけの文字列>`)は、複数単語のモデル名だと単語の区切りが分からず読みにくい(例: `ManagementGroup` → `app_managementgroup`)。全モデルで`Meta.db_table`を明示し、アプリ名プレフィックスを付けず、単語間を`_`で区切ったスネークケースのテーブル名にする。
+
+- 単語区切りだけでなくアプリ名プレフィックス(`app_`等)も付けない。テーブル名だけを見て何のデータか分かることを優先する
+- モデルを追加・リネームしたら、`Meta.db_table`の設定と対応するマイグレーション(`makemigrations`で生成される`AlterModelTable`)の作成を忘れない
+
+### Example
+
+```python
+class ManagementGroup(models.Model):
+    class Meta:
+        db_table = 'management_group'
+
+    ...
+```
+
+## Migration Rules
+
+マイグレーションファイルは、まだどこにも適用されていない間(自分のローカルDB以外に、共有DB・他の開発者・CI等で`migrate`が実行されていない間)は、自由に編集・統合してよい。逆に、一度でも共有された環境に適用されたマイグレーションは書き換えない(適用先の`django_migrations`テーブルとの整合性が壊れるため)。
+
+- 同一ブランチ内(mainに未マージ)で同じモデルへの変更を続ける場合、新しいマイグレーションファイルを都度追加せず、まだ未適用のマイグレーションファイルを直接編集して1つにまとめる。
+- ブランチがmainにマージされた後にさらに変更が必要になった場合は、既存のマイグレーションを書き換えず、新しいマイグレーションファイルを追加する。
+- マイグレーションを直接編集した後は、`python manage.py makemigrations --check --dry-run`でモデル定義とのズレがないことを確認する。
+
+## Seed Data Rules
+
+開発・動作確認用のシードデータ生成ロジックは、models/views/forms等と同様にモデルごとにファイル分割し、`app/seeds/` ディレクトリに置く。`app/management/commands/seed_database.py` は各`app/seeds/*.py`の`create()`を呼び出すだけの薄い実装にする。
+
+- **モデルを追加したら、そのモデルにシードデータが必要か検討する**: 画面確認やログインに使うようなモデル(例: Employee)は追加時にシードデータも作成する。参照専用のマスタ的なモデルなど不要な場合はスキップしてよい。
+- **配置場所**: `app/seeds/<model>.py` に `create()` 関数を定義する。他のシードから参照される可能性がある場合は、作成したオブジェクトを返す。
+- **呼び出し順序**: `seed_database.py`の`handle()`で、モデルの依存関係(外部キー等)を考慮した順序で各`create()`を呼び出す。
+- **シードデータは最小限にする**: ログイン確認用など個別に参照したいレコードは社員番号などを固定して少数だけ作る。一覧・ページネーションなど「複数件あること」の確認が必要な場合のみ、`Faker`(`Faker('ja_JP')`)でダミーデータを追加生成する。用途がないのに機械的に大量のダミーデータを生成しない。
+- **パスワードは固定の簡易値でよい**: `password123` のような開発用の固定パスワードを使う(本番相当のランダム生成は不要)。
+
+### Example
+
+```
+app/seeds/
+├── __init__.py       # from . import employee のようにモジュール単位でインポート
+└── employee.py        # def create(): ...
+```
+
+```python
+# app/seeds/employee.py
+from django.contrib.auth.models import User
+from faker import Faker
+from app.models import Employee
+
+fake = Faker('ja_JP')
+DUMMY_EMPLOYEE_COUNT = 10
+
+
+# 社員のシードデータを作成する
+def create():
+    # ログイン確認用に社員番号を固定した社員
+    _create_employee('E0001', '太郎', '山田', is_staff=True)
+    _create_employee('E0002', '花子', '鈴木')
+
+    # 一覧・ページネーション確認用のダミー社員
+    for i in range(1, DUMMY_EMPLOYEE_COUNT + 1):
+        _create_employee(f'E9{i:03d}', fake.first_name(), fake.last_name())
+
+
+def _create_employee(employee_number, first_name, last_name, is_staff=False):
+    user = User.objects.create_user(
+        username=employee_number, password='password123',
+        first_name=first_name, last_name=last_name, is_staff=is_staff,
+    )
+    return Employee.objects.create(user=user, employee_number=employee_number)
+```
+
+```python
+# app/management/commands/seed_database.py
+from django.core.management.base import BaseCommand
+from app import seeds
+
+
+class Command(BaseCommand):
+    help = '動作確認用のシードデータを投入する'
+
+    def handle(self, *_args, **_options):
+        seeds.employee.create()
+```
+
+## Model Validation Rules
+
+Djangoは`save()`時に自動でバリデーション(フィールドの`validators`、`clean()`)を実行しない(ModelFormの`is_valid()`経由でのみ実行される)。フォームを経由しないシェル・管理コマンド・データ移行などでもバリデーションが素通りしないよう、バリデーションロジックを持つモデルは`save()`をオーバーライドして`full_clean()`を必ず呼ぶ。
+
+- フィールドの`validators=[...]`や`clean()`に検証ロジックを書く。複数フィールドにまたがるユニーク制約(重複禁止)も、DBの`UniqueConstraint`ではなく`clean()`で`django.core.exceptions.ValidationError`を送出する形にする
+- `save()`をオーバーライドし、`super().save()`を呼ぶ前に`self.full_clean()`を呼ぶ(Railsのように、`save()`のたびに必ずバリデーションが走るようにする)
+- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため。また`save()`でバリデーションを効かせないと、フォームを経由しない直接作成(シェル操作等)でルール違反のデータが作られてしまう
+- ModelForm経由の保存では`is_valid()`(内部で`full_clean()`)とこの`save()`の両方でバリデーションが走るが、二重に検証されるだけで害はない
+
+(注: この方針はまだ確信が持てていない試験的なルールで、今後変更する可能性がある)
+
+### Example
+
+```python
+from django.core.exceptions import ValidationError
+from django.db import models
+
+
+class Department(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    # 同じ会社内で部門名が重複しないようにする
+    def clean(self):
+        duplicates = Department.objects.filter(company=self.company, name=self.name).exclude(pk=self.pk)
+        if duplicates.exists():
+            raise ValidationError('この会社には同じ名前の部門が既に存在します。')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 ```

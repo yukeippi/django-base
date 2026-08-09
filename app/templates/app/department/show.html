@@ -1,0 +1,35 @@
+{% extends 'app/department/base.html' %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 id="department-name" class="mb-0">{{ department.name }}</h1>
+    <div>
+        <a href="{% url 'app:department_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+        <a href="{% url 'app:department_edit' department.pk %}" id="edit-department-link" class="btn btn-primary">編集</a>
+        <a href="{% url 'app:department_delete' department.pk %}" id="delete-department-link" class="btn btn-danger">削除</a>
+    </div>
+</div>
+
+<div class="department-detail card">
+    <div class="card-body">
+        <div class="department-field mb-3">
+            <label class="form-label fw-bold">会社:</label>
+            <p id="department-company">{{ department.company.name }}</p>
+        </div>
+        <div class="department-field mb-0">
+            <label class="form-label fw-bold">所属社員:</label>
+            {% if department.employee_departments.all %}
+            <ul id="department-employees">
+                {% for relation in department.employee_departments.all %}
+                <li>{{ relation.employee }}{% if relation.is_primary %}(主務){% else %}(兼務){% endif %}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p id="department-no-employees">所属している社員はいません。</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

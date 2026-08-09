@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from app.validators import ContainsCharacterValidator
+from app.lib.validators import ContainsCharacterValidator
 
 
 # タスク管理のためのサンプルモデル
@@ -52,12 +52,18 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True, verbose_name='期限')
 
     class Meta:
+        db_table = 'task'
         ordering = ['-created_at']
         verbose_name = 'タスク'
         verbose_name_plural = 'タスク'
 
     def __str__(self):
         return self.title
+
+    # save()のたびに必ずバリデーション(フィールドのvalidators等)が走るようにする
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     # 期限を過ぎているかチェック
     def is_overdue(self):

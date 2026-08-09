@@ -1,0 +1,31 @@
+{% extends 'app/management_group/base.html' %}
+
+{% block title %}{{ management_group.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 id="management-group-name" class="mb-0">{{ management_group.name }}</h1>
+    <div>
+        <a href="{% url 'app:management_group_index' %}" class="btn btn-outline-secondary">一覧に戻る</a>
+        <a href="{% url 'app:management_group_edit' management_group.pk %}" id="edit-management-group-link" class="btn btn-primary">編集</a>
+        <a href="{% url 'app:management_group_delete' management_group.pk %}" id="delete-management-group-link" class="btn btn-danger">削除</a>
+    </div>
+</div>
+
+<div class="management-group-detail card">
+    <div class="card-body">
+        <div class="management-group-field mb-0">
+            <label class="form-label fw-bold">メンバー:</label>
+            {% if management_group.members.all %}
+            <ul id="management-group-members">
+                {% for member in management_group.members.all %}
+                <li>{{ member.username }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p id="management-group-no-members">メンバーがいません。</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

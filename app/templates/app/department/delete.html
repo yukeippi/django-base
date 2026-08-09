@@ -1,0 +1,19 @@
+{% extends 'app/department/base.html' %}
+
+{% block title %}部門削除確認{% endblock %}
+
+{% block content %}
+<h1>部門を削除しますか?</h1>
+
+<div class="card">
+    <div class="card-body">
+        <p id="delete-department-name" class="fs-5">{{ department.name }}</p>
+
+        <form method="post" id="department-delete-form" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" id="department-delete-confirm" class="btn btn-danger">削除する</button>
+        </form>
+        <a href="{% url 'app:department_show' department.pk %}" class="btn btn-outline-secondary">キャンセル</a>
+    </div>
+</div>
+{% endblock %}

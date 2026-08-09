@@ -1,0 +1,19 @@
+{% extends 'app/company/base.html' %}
+
+{% block title %}会社削除確認{% endblock %}
+
+{% block content %}
+<h1>会社を削除しますか?</h1>
+
+<div class="card">
+    <div class="card-body">
+        <p id="delete-company-name" class="fs-5">{{ company.name }}</p>
+
+        <form method="post" id="company-delete-form" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" id="company-delete-confirm" class="btn btn-danger">削除する</button>
+        </form>
+        <a href="{% url 'app:company_show' company.pk %}" class="btn btn-outline-secondary">キャンセル</a>
+    </div>
+</div>
+{% endblock %}

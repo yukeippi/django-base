@@ -1,0 +1,44 @@
+{% extends 'app/management_group/base.html' %}
+
+{% block title %}管理グループ一覧{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">管理グループ一覧</h1>
+    <div>
+        <a href="{% url 'app:index' %}" class="btn btn-outline-secondary">ホームに戻る</a>
+        <a href="{% url 'app:management_group_new' %}" id="new-management-group-link" class="btn btn-success">新規作成</a>
+    </div>
+</div>
+
+{% if management_groups %}
+    <table id="management-group-table" class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>管理グループ名</th>
+                <th>メンバー数</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for management_group in management_groups %}
+            <tr class="management-group-row" data-href="{% url 'app:management_group_show' management_group.pk %}">
+                <td>{{ management_group.name }}</td>
+                <td>{{ management_group.members.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p id="no-management-groups" class="alert alert-info">管理グループが登録されていません。</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.management-group-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+        window.location.href = row.dataset.href;
+    });
+});
+</script>
+{% endblock %}

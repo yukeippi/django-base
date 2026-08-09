@@ -255,3 +255,54 @@ class TestTaskDeleteView:
 
         assert response.status_code == 403
         assert Task.objects.filter(id=task.id).count() == 1
+
+
+@pytest.mark.django_db
+class TestTaskApiView:
+
+    # 未ログインの場合、ログインページにリダイレクトされることを確認
+    def test_api_requires_login(self, client):
+        response = client.get('/api/tasks/')
+        assert response.status_code == 302
+        assert response.url.startswith('/login/')
+
+    # タスクが無い場合、空配列がJSONで返ることを確認
+    def test_api_returns_empty_list(self, auth_client):
+        response = auth_client.get('/api/tasks/')
+
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/json'
+        assert response.json() == []
+
+    # タスクの内容が正しい形式・値でJSON化されることを確認
+    def test_api_returns_task_data(self, auth_client):
+        task = Task.objects.create(title='API Task', status='todo', priority=3)
+
+        response = auth_client.get('/api/tasks/')
+        data = response.json()
+
+        assert response.status_code == 200
+        assert len(data) == 1
+        assert data[0] == {
+            'id': task.id,
+            'title': 'API Task',
+            'status': 'todo',
+            'priority': 3,
+        }
+
+    # 複数タスクがすべて含まれることを確認
+    def test_api_returns_multiple_tasks(self, auth_client):
+        Task.objects.create(title='Task 1', status='todo', priority=1)
+        Task.objects.create(title='Task 2', status='done', priority=2)
+
+        response = auth_client.get('/api/tasks/')
+
+        assert response.status_code == 200
+        assert len(response.json()) == 2
+
+    # GET以外のメソッドは405が返ることを確認
+    def test_api_post_returns_405(self, auth_client):
+        response = auth_client.post('/api/tasks/')
+
+        assert response.status_code == 405
+        assert response.json() == {'error': 'Method not allowed'}

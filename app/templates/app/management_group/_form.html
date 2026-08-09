@@ -1,0 +1,32 @@
+<form method="post" id="management-group-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="form-field mb-3">
+        <label for="{{ form.name.id_for_label }}" class="form-label">管理グループ名</label>
+        {{ form.name }}
+        <div class="text-danger small">{{ form.name.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.members.id_for_label }}" class="form-label">メンバー</label>
+        {{ form.members }}
+        <div class="text-danger small">{{ form.members.errors }}</div>
+    </div>
+    <div class="form-field mb-3 form-check">
+        {{ form.is_admin }}
+        <label for="{{ form.is_admin.id_for_label }}" class="form-check-label">全社管理者</label>
+        <div class="text-danger small">{{ form.is_admin.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.department.id_for_label }}" class="form-label">割当部門</label>
+        {{ form.department }}
+        <div class="text-danger small">{{ form.department.errors }}</div>
+    </div>
+    <div class="form-field mb-3">
+        <label for="{{ form.permission_set_id.id_for_label }}" class="form-label">権限セット番号</label>
+        {{ form.permission_set_id }}
+        <div class="text-danger small">{{ form.permission_set_id.errors }}</div>
+    </div>
+    <button type="submit" id="management-group-form-submit" class="btn btn-primary">保存</button>
+</form>

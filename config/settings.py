@@ -87,6 +87,13 @@ DATABASES = {
 }
 
 
+# 認証バックエンド
+# 社員番号(employee_number)でログインするため、標準のModelBackend(username認証)は使わない
+AUTHENTICATION_BACKENDS = [
+    'app.lib.auth.EmployeeNumberBackend',
+]
+
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
