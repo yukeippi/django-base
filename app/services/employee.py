@@ -31,6 +31,7 @@ def update(*, employee: Employee, form: EmployeeForm) -> Employee:
     return employee
 
 
-# 社員(User含む)を削除する
+# 社員を削除する(UserをCASCADEで削除すると、紐づくEmployeeも削除される)
+@transaction.atomic
 def delete(*, employee: Employee) -> None:
     employee.user.delete()
