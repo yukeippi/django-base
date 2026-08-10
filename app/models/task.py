@@ -1,4 +1,3 @@
-from typing import Any
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -58,11 +57,11 @@ class Task(models.Model):
         verbose_name = 'タスク'
         verbose_name_plural = 'タスク'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.title
 
     # save()のたびに必ずバリデーション(フィールドのvalidators等)が走るようにする
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
 

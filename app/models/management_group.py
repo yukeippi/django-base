@@ -1,4 +1,3 @@
-from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
@@ -23,11 +22,11 @@ class ManagementGroup(models.Model):
         verbose_name = '管理グループ'
         verbose_name_plural = '管理グループ'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name
 
     # is_adminと部門・権限セット設定の整合性を検証する(全社管理者は部門・権限セットを持たず、それ以外は両方必須)
-    def clean(self) -> None:
+    def clean(self):
         if self.is_admin and self.department_id is not None:
             raise ValidationError('全社管理者グループには部門を設定できません。')
         if not self.is_admin and self.department_id is None:
@@ -39,6 +38,6 @@ class ManagementGroup(models.Model):
         if not self.is_admin and self.permission_set_id not in rule_sets.REGISTRY:
             raise ValidationError('存在しない権限セット番号です。')
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

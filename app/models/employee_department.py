@@ -1,4 +1,3 @@
-from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import models
 from app.models.employee import Employee
@@ -20,11 +19,11 @@ class EmployeeDepartment(models.Model):
         verbose_name = '社員所属部門'
         verbose_name_plural = '社員所属部門'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.employee} - {self.department}'
 
     # 同じ社員・部門の組み合わせが重複しないようにする(DB制約ではなくアプリ側でチェックする)
-    def clean(self) -> None:
+    def clean(self):
         duplicates = EmployeeDepartment.objects.filter(
             employee=self.employee, department=self.department
         ).exclude(pk=self.pk)
@@ -32,7 +31,7 @@ class EmployeeDepartment(models.Model):
             raise ValidationError('この社員は既にこの部門に所属しています。')
 
     # 主務(is_primary=True)を1人につき1件までにする(既存の主務があれば自動的にOFFにする)
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs):
         self.full_clean()
         if self.is_primary:
             EmployeeDepartment.objects.filter(
