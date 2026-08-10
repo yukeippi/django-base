@@ -3,7 +3,7 @@ from app.models import Department, EmployeeDepartment
 
 
 # 社員の部門所属(主務/兼務)のシードデータを作成する
-def create():
+def create() -> None:
     dev = Department.objects.get(company__name='サンプル株式会社', name='開発部')
     sales = Department.objects.get(company__name='サンプル株式会社', name='営業部')
 

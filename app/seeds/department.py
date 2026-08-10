@@ -2,7 +2,7 @@ from app.models import Company, Department
 
 
 # 部門のシードデータを作成する
-def create():
+def create() -> None:
     sample = Company.objects.get(name='サンプル株式会社')
     Department.objects.create(company=sample, name='開発部')
     Department.objects.create(company=sample, name='営業部')
