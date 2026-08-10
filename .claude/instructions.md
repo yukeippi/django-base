@@ -12,14 +12,16 @@ models、forms、views、tests、templatesはディレクトリ化し、機能�
 ### Examples
 - models/todo.py
 - views/todo.py
+- services/todo.py
 - tests/unit/models/todo_test.py
 - tests/unit/forms/todo_test.py
 - tests/unit/views/todo_test.py
+- tests/unit/services/todo_test.py
 - tests/e2e/todo_test.py
 
 各ディレクトリに__init__.pyを配置すること。
 
-`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`, `lib/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/lib/`(`auth.py`/`permissions.py`/`validators.py`等、app内で共有するロジック。詳細はCommon Module Rulesを参照)のテストも同様に`tests/unit/lib/`に置く(例: `tests/unit/lib/auth_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
+`tests/unit/`配下は、ソース側の`models/`, `forms/`, `views/`, `services/`, `lib/`と対応するレイヤーごとのディレクトリにさらに分割する(Railsの`test/models/`, `test/controllers/`に相当)。`app/lib/`(`auth.py`/`permissions.py`/`validators.py`等、app内で共有するロジック。詳細はCommon Module Rulesを参照)のテストも同様に`tests/unit/lib/`に置く(例: `tests/unit/lib/auth_test.py`)。`tests/e2e/`はページ単位のテストのため、このレイヤー分割は行わない。
 
 ## Layout Rules
 
@@ -202,17 +204,21 @@ def _display_edit_form(request, task):
 # タスクの更新処理を行う
 def _update_task(request, task):
     form = TaskForm(request.POST, instance=task)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'タスクを更新しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_edit_form(request, task, form)
+    if not form.is_valid():
+        return _render_edit_form(request, task, form)
+    services.task.update(form=form)
+    messages.success(request, 'タスクを更新しました。')
+    return redirect('app:task_show', pk=task.pk)
 
 
 # タスク編集フォームのレンダリング
 def _render_edit_form(request, task, form):
     return render(request, 'app/task/edit.html', {'form': form, 'task': task})
 ```
+
+privateヘルパーは、フォームの束縛・serviceの呼び出し・messages・リダイレクトのみを行う。モデルへの書き込みはヘルパー内に書かず、必ず`app/services/`の関数を呼ぶ(Service Rules参照)。
+
+更新系のPOSTは、成功時に必ずリダイレクトする(POST-Redirect-GET)。ブラウザの再送信を防ぎ、「GETは表示・POSTは更新」の境界を保つため。
 
 ## Control Flow Rules
 
@@ -226,7 +232,7 @@ def _create_task(request):
     if request.method == 'POST':
         form = TaskForm(request.POST)
         if form.is_valid():
-            task = form.save()
+            task = services.task.create(form=form)
             messages.success(request, 'タスクを作成しました。')
             return redirect('app:task_show', pk=task.pk)
         else:
@@ -237,11 +243,32 @@ def _create_task(request):
 # 良い書き方(早期returnでネストを浅く保つ)
 def _create_task(request):
     form = TaskForm(request.POST)
-    if form.is_valid():
-        task = form.save()
-        messages.success(request, 'タスクを作成しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_new_form(request, form)
+    if not form.is_valid():
+        return _render_new_form(request, form)
+    task = services.task.create(form=form)
+    messages.success(request, 'タスクを作成しました。')
+    return redirect('app:task_show', pk=task.pk)
+```
+
+## Function Signature Rules
+
+関数・メソッドのシグネチャは、実際の利用実態を正確に表すものにする。ビューに限らず、モデル・フォーム・service・共有モジュールなど全てのPythonコードに適用する。
+
+- **使わない引数は持たない**: 関数内で参照していない引数は削除する。シグネチャに残しておくと「この値が結果に影響する」という誤った契約を呼び出し側に示してしまい、渡した値が実際の処理と食い違っていても検出されない。他の関数とシグネチャを揃えたいという理由だけで意味のない引数を残さない
+- **公開関数の引数と戻り値には型注釈(type hints)を付ける**: 呼び出し側との契約を明示し、IDEの補完・型チェッカーの恩恵を受けられるようにするため。以下は対象外とする
+  - 同一ファイル内で完結する実装詳細であるprivateヘルパー(`_`始まり)
+  - `clean()`/`save()`/`__str__()`/`__init__()`のような、基底クラス・Python自身がシグネチャを決めるメソッド。`-> None`や`*args, **kwargs`を書き足しても実際の情報が増えないため
+
+### Example
+
+```python
+# 避ける書き方(companyはform.save()の結果に影響しない。form.saveはform.instanceを使う)
+def update(company, form) -> Company:
+    return form.save()
+
+# 良い書き方(実際に使う引数だけを、型注釈付きで受け取る)
+def update(*, form: CompanyForm) -> Company:
+    return form.save()
 ```
 
 ## Partial Template Rules
@@ -302,10 +329,19 @@ app/static/app/
 
 共有モジュールは、共有する範囲によって置き場所を分ける。Pythonモジュールに限らず、テンプレートも同じ考え方で置き場所を分ける。
 
-- **1つのアプリ内で共有**: `app/lib/` に置く(Railsの`lib/`相当。models/views/forms等どこにも属さない、app固有の共有コードの置き場)。`urls.py`/`apps.py`/`admin.py`のような、Djangoの規約でアプリ直下に置くと決まっているファイルはそのままアプリ直下に残し、開発者が追加した「app内で共有するロジック」だけを`app/lib/`にまとめる。役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/lib/auth.py`、権限(何ができるかの判定)は`app/lib/permissions.py`、複数モデルで使い回すバリデータは`app/lib/validators.py`、汎用ユーティリティは`app/lib/utils.py`(増えてきたら`app/lib/utils/`ディレクトリ化し、関心事ごとにファイル分割する。例: `utils/date.py`)。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同じ考え方で、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
+`app/lib/`は、`models/`/`views/`/`forms/`/`services/`のいずれにも属さない補助的なコードの置き場である。業務ロジック(モデルへの書き込みを伴う処理)は`app/lib/`ではなく`app/services/`に置く(Service Rules参照)。serviceは補助的な共有コードではなく、`models/`/`views/`/`forms/`と同列の層として扱う。
+
+- **1つのアプリ内で共有**: `app/lib/` に置く(Railsの`lib/`相当)。`urls.py`/`apps.py`/`admin.py`のような、Djangoの規約でアプリ直下に置くと決まっているファイルはそのままアプリ直下に残し、開発者が追加した「app内で共有するロジック」だけを`app/lib/`にまとめる。役割ごとにファイルを分ける: 認証(ログイン等、誰であるかの検証)は`app/lib/auth.py`、権限(何ができるかの判定)は`app/lib/permissions.py`、複数モデルで使い回すバリデータは`app/lib/validators.py`、汎用ユーティリティは`app/lib/utils.py`(増えてきたら`app/lib/utils/`ディレクトリ化し、関心事ごとにファイル分割する。例: `utils/date.py`)。ナビゲーションバー・フラッシュメッセージ表示のような特定のモデルに属さないパーシャルテンプレート(`app/templates/common/`)も同じ考え方で、このアプリ専用の置き場に置く。「複数アプリ間で共有」に見えても、実際に共有先の別アプリが存在しない限りは、このアプリ内に留める。
   - 例外: `app/management/commands/`(Djangoがこの場所を前提にコマンドを自動検出する)と`app/seeds/`(Seed Data Rules参照、モデルごとのデータ生成スクリプト群という別カテゴリ)は`app/lib/`に含めない。
-  - **`app/lib/`配下のモジュールが肥大化した場合の昇格**: 関心事が独立したサブシステムと呼べる規模になった場合、`app/permissions/`のように`models/`/`views/`/`forms/`等と同列のトップレベルディレクトリへ昇格してよい。昇格後は他のトップレベルディレクトリと同じ構成規則(ディレクトリ化・`__init__.py`配置・テストディレクトリの対応)に従う。
+  - **`app/lib/`配下のモジュールが肥大化した場合の昇格**: 関心事が独立したサブシステムと呼べる規模になった場合、`app/permissions/`のように`models/`/`views/`/`forms/`/`services/`等と同列のトップレベルディレクトリへ昇格してよい。昇格後は他のトップレベルディレクトリと同じ構成規則(ディレクトリ化・`__init__.py`配置・テストディレクトリの対応)に従う。
 - **複数アプリ間で共有**: `app/` と同列に共有専用アプリ `common/` を作り、`INSTALLED_APPS` に登録して置く。これは実際に2つ以上のアプリから使われるようになった時点で行う。
+
+#### 判断に迷った場合
+
+`app/lib/` に置くべきか `app/services/` に置くべきか迷ったら、次で判断する。
+
+- モデルへの書き込みを行う、またはトランザクションを必要とする → `app/services/`
+- 値の計算・変換・判定のみで、DBを変更しない → `app/lib/`
 
 ```
 config/
@@ -313,7 +349,11 @@ app/
 ├── urls.py                  # Djangoの規約でアプリ直下に置くファイル(そのまま)
 ├── apps.py
 ├── admin.py
-├── lib/                     # app内で共有する、開発者が追加したロジック
+├── models/                  # 永続化・状態判定
+├── views/                   # HTTPの入出力
+├── forms/                   # 入力検証
+├── services/                # 業務ロジック・トランザクション境界
+├── lib/                     # 上記のどれにも属さない、app内で共有するコード
 │   ├── __init__.py
 │   ├── auth.py              # 認証ロジック(ログイン等、誰であるかの検証)
 │   ├── permissions.py       # 権限判定ロジック(何ができるかの判定)
@@ -481,14 +521,15 @@ class Command(BaseCommand):
 
 ## Model Validation Rules
 
-Djangoは`save()`時に自動でバリデーション(フィールドの`validators`、`clean()`)を実行しない(ModelFormの`is_valid()`経由でのみ実行される)。フォームを経由しないシェル・管理コマンド・データ移行などでもバリデーションが素通りしないよう、バリデーションロジックを持つモデルは`save()`をオーバーライドして`full_clean()`を必ず呼ぶ。
+検証ロジックはモデルに集約する。フィールドの`validators=[...]`と`clean()`に書き、フォームには書かない。同じルールを複数のフォームで重複させないため。
 
-- フィールドの`validators=[...]`や`clean()`に検証ロジックを書く。複数フィールドにまたがるユニーク制約(重複禁止)も、DBの`UniqueConstraint`ではなく`clean()`で`django.core.exceptions.ValidationError`を送出する形にする
-- `save()`をオーバーライドし、`super().save()`を呼ぶ前に`self.full_clean()`を呼ぶ(Railsのように、`save()`のたびに必ずバリデーションが走るようにする)
-- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため。また`save()`でバリデーションを効かせないと、フォームを経由しない直接作成(シェル操作等)でルール違反のデータが作られてしまう
-- ModelForm経由の保存では`is_valid()`(内部で`full_clean()`)とこの`save()`の両方でバリデーションが走るが、二重に検証されるだけで害はない
+モデルは`save()`をオーバーライドして`full_clean()`を呼ぶ。ModelForm経由の保存では`is_valid()`が内部でモデルの検証を実行するため重複するが、**フォームを伴わないservice(状態遷移など)や管理コマンドからの保存では、この`save()`が唯一の検証機会になる**ため、常に呼ぶ形にする。
 
-(注: この方針はまだ確信が持てていない試験的なルールで、今後変更する可能性がある)
+- `clean()`でのエラーは、原因が1つのフィールドに特定できる場合は辞書形式`ValidationError({'field_name': 'メッセージ'})`で送出し、フォーム経由なら該当フィールドの直下にエラーが表示されるようにする。複数フィールドの組み合わせ(重複チェック等、どちらのフィールドが「悪い」とは言えない場合)は非フィールドエラーとして文字列`ValidationError('メッセージ')`のまま送出する
+- `bulk_create()`/`bulk_update()`/`queryset.update()`/生SQLは`save()`を通らないため検証されない。検証ロジックを持つモデルに対してこれらを使わない。他レコードを連動して更新する必要がある場合(例: 主務フラグの切り替え)は、その手順ごとserviceに置く(Service Rules参照)
+- `clean()`でDBを参照する検証(重複チェック等)を書くと、フォーム経由の保存でクエリが2回発行される。ループでの大量保存には向かないため、その場合は別途検討する
+
+(注: `save()`で`full_clean()`を常に呼ぶという方針自体は、まだ確信が持てていない試験的なルールで、今後変更する可能性がある)
 
 ### Example
 
@@ -501,7 +542,7 @@ class Department(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
 
-    # 同じ会社内で部門名が重複しないようにする
+    # 同じ会社内で部門名が重複しないようにする(company/nameのどちらが悪いとも言えないため非フィールドエラー)
     def clean(self):
         duplicates = Department.objects.filter(company=self.company, name=self.name).exclude(pk=self.pk)
         if duplicates.exists():
@@ -510,4 +551,171 @@ class Department(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+```
+
+```python
+class DepartmentHierarchy(models.Model):
+    department = models.OneToOneField(Department, on_delete=models.CASCADE)
+    parent_department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.CASCADE)
+
+    # 親部門が不正な場合、原因はparent_departmentフィールドに特定できるためフィールドエラーにする
+    def clean(self):
+        if self.parent_department and self.parent_department.company_id != self.department.company_id:
+            raise ValidationError({'parent_department': '親部門は同じ会社に属している必要があります。'})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+```
+
+## Service Rules
+
+モデルへの書き込みは、すべて`app/services/`を経由する。viewから`form.save()`/`Model.objects.create()`/`instance.save()`/`instance.delete()`を直接呼ばない。
+
+処理の複雑さによって置き場所を変えない。単純な作成・更新であっても例外を設けない。複雑さで分岐させると「これはserviceに置くべきか」という判断が毎回発生し、実装者ごと・セッションごとにブレるため。単純な処理のserviceは数行になるが、後から業務ルールが増えたときにviewを触らずに済み、変更のdiffが「機能追加」だけになる。
+
+読み取りは対象外。一覧・詳細取得はviewから直接ORMを呼んでよい。絞り込み条件はQuerySet Rulesに従いカスタムQuerySetに置く。serviceは書き込み専用とする。
+
+### 構成
+
+- `app/services/<model>.py`に関数として定義する。`__init__.py`では`views/`と同様にモジュール単位でインポートし、呼び出し側は`services.<model>.<関数名>`の形で参照する
+- 1関数1ユースケースとする。`TaskService`のようなクラスに操作を集約しない。クラスに集約するとモデル単位で肥大化し、分割できなくなる
+- 関数名は業務操作名にする(`complete`, `approve`, `cancel`)。単純なCRUDは`create`/`update`/`delete`でよい
+- ファイルが肥大化したら、関数の集合であることを活かして`app/services/<model>/`ディレクトリに分割する。`__init__.py`で再エクスポートすれば呼び出し側は変更不要
+
+### 関数の書き方
+
+- 引数はキーワード専用(`*`以降)にする。呼び出し側で各引数の意味が読めるようにするため
+- `HttpRequest`を受け取らない。管理コマンド・バッチ・テストから同じ関数を呼べるようにするため。検証済みのフォーム(`Form`インスタンス)は受け取ってよい
+- 引数・戻り値の型注釈、使わない引数を持たないことについてはFunction Signature Rulesに従う
+- `@transaction.atomic`はserviceに付ける。viewとmodelには書かない。1つの業務操作 = 1つのトランザクションとする
+- serviceは他のserviceパッケージを呼ばない。`services/task.py`から`services/project.py`を呼ばない。トランザクション境界が追跡できなくなるため。同一ファイル内のprivateヘルパー(`_`始まり)への切り出しは可
+
+### 関数内部の並び順
+
+処理は以下の順に書く。この順序により、ガード節が先頭に集まり、外部への通知がDB変更の確定後になる。該当しない段階は省略してよい。
+
+1. **検証** — 業務条件を満たさなければ例外を送出して終了
+2. **変更** — モデルの更新・関連レコードの作成
+3. **記録** — 履歴・監査ログ
+4. **通知** — メール送信・外部システム連携
+
+通知は`transaction.on_commit()`に包む。トランザクション内で直接実行すると、後続処理がロールバックしても通知だけが送信される。
+
+### serviceが持たないもの
+
+- `django.contrib.messages`の呼び出し
+- `redirect`/HTTPステータス/テンプレート名
+- `get_object_or_404`
+- 画面遷移に関する判断
+
+業務条件を満たさない場合は、リダイレクトではなく例外を送出する。viewが受け取って`messages`と画面遷移に変換する。
+
+### modelとの役割分担
+
+serviceが持つのは操作の手順であり、状態の意味ではない。
+
+- 「このオブジェクトが今どういう状態か」の判定はmodelに置く(`task.can_complete()`, `task.is_overdue()`)。テンプレートから`{% if task.can_complete %}`と呼べるのもmodel側にある場合のみ
+- 「その状態でこの操作をしてよいか」の判断と、実際の手順はserviceに置く
+
+判定ロジックをserviceに書くとserviceだけが太り、modelが空になる。判定はmodelへ、手順はserviceへ寄せる。
+
+### Example
+
+```python
+# app/models/task.py
+
+# タスク管理のためのモデル
+class Task(models.Model):
+    ...
+
+    # 完了可能な状態かどうか
+    def can_complete(self):
+        if self.status == Task.Status.COMPLETED:
+            return False
+        return not self.children.exclude(status=Task.Status.COMPLETED).exists()
+```
+
+```python
+# app/services/task.py
+from django.db import transaction
+
+# タスクを作成する
+def create(*, form: TaskForm) -> Task:
+    return form.save()
+
+# タスクを完了にする
+@transaction.atomic
+def complete(*, task: Task, operator: User) -> Task:
+    # 1. 検証
+    if not task.can_complete():
+        raise ValidationError('このタスクは完了できません。')
+
+    # 2. 変更
+    task.status = Task.Status.COMPLETED
+    task.completed_at = timezone.now()
+    task.save()
+
+    # 3. 記録
+    TaskHistory.objects.create(task=task, action='completed', operator=operator)
+
+    # 4. 通知
+    transaction.on_commit(lambda: send_completion_notice(task))
+    return task
+```
+
+```python
+# app/views/task.py
+
+# タスク完了処理を行う
+def _complete_task(request, task):
+    try:
+        services.task.complete(task=task, operator=request.user)
+    except ValidationError as error:
+        messages.error(request, error.message)
+        return redirect('app:task_show', pk=task.pk)
+
+    messages.success(request, 'タスクを完了しました。')
+    return redirect('app:task_show', pk=task.pk)
+```
+
+```python
+# app/services/__init__.py
+from . import task
+
+__all__ = ['task']
+```
+
+## QuerySet Rules
+
+繰り返し使う絞り込み条件は、viewやserviceに書かず、カスタムQuerySetのメソッドとして定義する。同じ`filter()`が複数箇所に散ることを防ぎ、条件に業務上の名前を与えるため。
+
+- `app/models/<model>.py`内に、対応するモデルと同じファイルで定義する。全モデル分を1ファイルに集約しない
+- モデルには`objects = XxxQuerySet.as_manager()`で紐づける
+- QuerySetは読み取り専用とする。状態変更や副作用を持たせない
+- 一覧表示で関連を辿る場合の`select_related`/`prefetch_related`もQuerySetメソッドにまとめる
+
+### Example
+
+```python
+# app/models/task.py
+
+class TaskQuerySet(models.QuerySet):
+
+    # 未完了のタスクに絞り込む
+    def incomplete(self):
+        return self.exclude(status=Task.Status.COMPLETED)
+
+    # 期限を過ぎた未完了タスクに絞り込む
+    def overdue(self):
+        return self.incomplete().filter(due_on__lt=timezone.localdate())
+
+    # 一覧表示で必要な関連をまとめて読み込む
+    def with_details(self):
+        return self.select_related('assignee').prefetch_related('children')
+
+
+class Task(models.Model):
+    objects = TaskQuerySet.as_manager()
+    ...
 ```

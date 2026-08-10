@@ -8,7 +8,7 @@ DUMMY_EMPLOYEE_COUNT = 10
 
 
 # 社員のシードデータを作成する
-def create():
+def create() -> None:
     # ログイン確認用に社員番号を固定した社員
     _create_employee('E0001', '太郎', '山田', is_staff=True)
     _create_employee('E0002', '花子', '鈴木')

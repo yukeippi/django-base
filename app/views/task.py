@@ -2,8 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import TaskForm
 from app.models import Task
 from app.permissions.roles import can_delete_task, can_edit_task
@@ -11,7 +12,7 @@ from app.permissions.roles import can_delete_task, can_edit_task
 
 # タスク一覧
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     tasks_qs = Task.objects.all()
     paginator = Paginator(tasks_qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -23,7 +24,7 @@ def index(request):
 
 # タスク詳細
 @login_required
-def show(request, pk):
+def show(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     return render(request, 'app/task/show.html', {
         'task': task,
@@ -34,7 +35,7 @@ def show(request, pk):
 
 # タスク新規作成
 @login_required
-def new(request):
+def new(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         return _create_task(request)
     return _display_new_form(request)
@@ -42,7 +43,7 @@ def new(request):
 
 # タスク編集
 @login_required
-def edit(request, pk):
+def edit(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
@@ -53,12 +54,12 @@ def edit(request, pk):
 
 # タスク削除
 @login_required
-def delete(request, pk):
+def delete(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     if not can_delete_task(request.user, task):
         raise PermissionDenied
     if request.method == 'POST':
-        task.delete()
+        services.task.delete(task=task)
         messages.success(request, 'タスクを削除しました。')
         return redirect('app:task_index')
     return render(request, 'app/task/delete.html', {'task': task})
@@ -66,7 +67,7 @@ def delete(request, pk):
 
 # タスクAPI(E2Eテスト用)
 @login_required
-def api(request):
+def api(request: HttpRequest) -> HttpResponse:
     if request.method == 'GET':
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
         return JsonResponse(list(tasks), safe=False)
@@ -87,13 +88,11 @@ def _display_new_form(request):
 # タスクの新規作成処理を行う
 def _create_task(request):
     form = TaskForm(request.POST)
-    if form.is_valid():
-        task = form.save(commit=False)
-        task.created_by = request.user
-        task.save()
-        messages.success(request, 'タスクを作成しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_new_form(request, form)
+    if not form.is_valid():
+        return _render_new_form(request, form)
+    task = services.task.create(form=form, created_by=request.user)
+    messages.success(request, 'タスクを作成しました。')
+    return redirect('app:task_show', pk=task.pk)
 
 
 # タスク新規作成フォームのレンダリング
@@ -110,11 +109,11 @@ def _display_edit_form(request, task):
 # タスクの更新処理を行う
 def _update_task(request, task):
     form = TaskForm(request.POST, instance=task)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'タスクを更新しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_edit_form(request, task, form)
+    if not form.is_valid():
+        return _render_edit_form(request, task, form)
+    services.task.update(form=form)
+    messages.success(request, 'タスクを更新しました。')
+    return redirect('app:task_show', pk=task.pk)
 
 
 # タスク編集フォームのレンダリング

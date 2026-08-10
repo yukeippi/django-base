@@ -1,35 +1,37 @@
+from django.contrib.auth.models import User
+from django.db.models import Model
 from app.permissions import rule_sets
 from app.permissions.roles import get_applicable_management_groups
 
 
 # 対象レコードを閲覧できるかどうかを判定する(fieldを指定するとカラム単位の判定になる)
-def can_view(user, model_name, instance, field=None):
+def can_view(user: User, model_name: str, instance: Model, field: str | None = None) -> bool:
     return _check(user, model_name, 'view', instance=instance, field=field)
 
 
 # 新規作成しようとしている未保存インスタンス(candidate)を作成できるかどうかを判定する
-def can_create(user, model_name, candidate):
+def can_create(user: User, model_name: str, candidate: Model) -> bool:
     return _check(user, model_name, 'create', instance=candidate)
 
 
 # 対象レコードを編集できるかどうかを判定する(fieldを指定するとカラム単位の判定になる)
-def can_edit(user, model_name, instance, field=None):
+def can_edit(user: User, model_name: str, instance: Model, field: str | None = None) -> bool:
     return _check(user, model_name, 'edit', instance=instance, field=field)
 
 
 # 対象レコードを削除できるかどうかを判定する
-def can_delete(user, model_name, instance):
+def can_delete(user: User, model_name: str, instance: Model) -> bool:
     return _check(user, model_name, 'delete', instance=instance)
 
 
 # 対象レコードに対して実行系の操作ができるかどうかを判定する
-def can_execute(user, model_name, instance):
+def can_execute(user: User, model_name: str, instance: Model) -> bool:
     return _check(user, model_name, 'execute', instance=instance)
 
 
 # 具体的な入力値が無い状態(newのGET)で、作成フォームを表示してよいかどうかを判定する
 # (scopeによる絞り込みは行わず、createにallowのルールを持つグループが1つでもあればTrue)
-def can_display_create_form(user, model_name):
+def can_display_create_form(user: User, model_name: str) -> bool:
     for group in get_applicable_management_groups(user):
         if group.is_admin:
             return True

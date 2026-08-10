@@ -1,5 +1,4 @@
 from django import forms
-from django.contrib.auth.models import User
 from app.models import Employee
 
 
@@ -29,7 +28,7 @@ class EmployeeForm(forms.Form):
         self.initial.setdefault('first_name', instance.user.first_name)
 
     # 社員番号が他の社員と重複していないかチェック(自分自身は除外)
-    def clean_employee_number(self):
+    def clean_employee_number(self) -> str:
         employee_number = self.cleaned_data['employee_number']
         duplicates = Employee.objects.filter(employee_number=employee_number)
         if self.instance is not None:
@@ -37,32 +36,3 @@ class EmployeeForm(forms.Form):
         if duplicates.exists():
             raise forms.ValidationError('この社員番号は既に使用されています。')
         return employee_number
-
-    def save(self):
-        if self.instance is None:
-            return self._create_employee()
-        return self._update_employee()
-
-    # UserとEmployeeを新規作成する
-    def _create_employee(self):
-        user = User.objects.create_user(
-            username=self.cleaned_data['employee_number'],
-            first_name=self.cleaned_data['first_name'],
-            last_name=self.cleaned_data['last_name'],
-            password=self.cleaned_data['password'],
-        )
-        return Employee.objects.create(user=user, employee_number=self.cleaned_data['employee_number'])
-
-    # 既存のUserとEmployeeを更新する(パスワードは入力があった場合のみ変更)
-    def _update_employee(self):
-        employee = self.instance
-        employee.employee_number = self.cleaned_data['employee_number']
-        employee.save()
-
-        user = employee.user
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        if self.cleaned_data['password']:
-            user.set_password(self.cleaned_data['password'])
-        user.save()
-        return employee

@@ -66,12 +66,12 @@ class Task(models.Model):
         super().save(*args, **kwargs)
 
     # 期限を過ぎているかチェック
-    def is_overdue(self):
+    def is_overdue(self) -> bool:
         if not self.due_date:
             return False
         from django.utils import timezone
         return self.due_date < timezone.now().date() and self.status != 'done'
 
     # 完了可能かチェック
-    def can_be_completed(self):
+    def can_be_completed(self) -> bool:
         return self.status in ['todo', 'in_progress']

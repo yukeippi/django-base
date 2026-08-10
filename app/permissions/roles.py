@@ -1,16 +1,17 @@
 # app内で共有する権限判定ロジックをここに置く
 
-from app.models import DepartmentHierarchy, ManagementGroup
+from django.contrib.auth.models import User
+from app.models import DepartmentHierarchy, ManagementGroup, Task
 
 
 # 管理者かどうかを判定(is_staffを管理者フラグとして扱う)
-def is_admin(user):
+def is_admin(user: User) -> bool:
     return user.is_staff
 
 
 # タスクを編集できるかどうかを判定
 # 管理者、作成者本人、担当者本人のいずれかであれば編集可能
-def can_edit_task(user, task):
+def can_edit_task(user: User, task: Task) -> bool:
     if is_admin(user):
         return True
     return task.created_by_id == user.id or task.assigned_to_id == user.id
@@ -18,12 +19,12 @@ def can_edit_task(user, task):
 
 # タスクを削除できるかどうかを判定
 # 編集権限と同じ基準を採用する
-def can_delete_task(user, task):
+def can_delete_task(user: User, task: Task) -> bool:
     return can_edit_task(user, task)
 
 
 # ログインユーザーに適用される管理グループの一覧を返す
-def get_applicable_management_groups(user):
+def get_applicable_management_groups(user: User) -> list[ManagementGroup]:
     groups = ManagementGroup.objects.filter(members=user)
 
     primary_department = _get_primary_department(user)
@@ -48,7 +49,7 @@ def _get_primary_department(user):
     employee = getattr(user, 'employee', None)
     if employee is None:
         return None
-    primary = employee.employee_departments.filter(is_primary=True).first()
+    primary = employee.employee_departments.primary().first()
     return primary.department if primary else None
 
 

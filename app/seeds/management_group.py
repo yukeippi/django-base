@@ -3,7 +3,7 @@ from app.models import Department, ManagementGroup
 
 
 # 管理グループのシードデータを作成する
-def create():
+def create() -> None:
     hr_group = ManagementGroup.objects.create(name='人事部', is_admin=True)
     hr_group.members.set(User.objects.filter(username='E0001'))
 

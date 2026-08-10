@@ -2,7 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import ManagementGroupForm
 from app.models import ManagementGroup
 from app.permissions.roles import is_admin
@@ -10,7 +12,7 @@ from app.permissions.roles import is_admin
 
 # 管理グループ一覧
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     _require_admin(request)
     groups_qs = ManagementGroup.objects.all()
     paginator = Paginator(groups_qs, 10)
@@ -23,7 +25,7 @@ def index(request):
 
 # 管理グループ詳細
 @login_required
-def show(request, pk):
+def show(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     return render(request, 'app/management_group/show.html', {'management_group': management_group})
@@ -31,7 +33,7 @@ def show(request, pk):
 
 # 管理グループ新規作成
 @login_required
-def new(request):
+def new(request: HttpRequest) -> HttpResponse:
     _require_admin(request)
     if request.method == 'POST':
         return _create_management_group(request)
@@ -40,7 +42,7 @@ def new(request):
 
 # 管理グループ編集
 @login_required
-def edit(request, pk):
+def edit(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     if request.method == 'POST':
@@ -50,11 +52,11 @@ def edit(request, pk):
 
 # 管理グループ削除
 @login_required
-def delete(request, pk):
+def delete(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     if request.method == 'POST':
-        management_group.delete()
+        services.management_group.delete(management_group=management_group)
         messages.success(request, '管理グループを削除しました。')
         return redirect('app:management_group_index')
     return render(request, 'app/management_group/delete.html', {'management_group': management_group})
@@ -80,11 +82,11 @@ def _display_new_form(request):
 # 管理グループの新規作成処理を行う
 def _create_management_group(request):
     form = ManagementGroupForm(request.POST)
-    if form.is_valid():
-        management_group = form.save()
-        messages.success(request, '管理グループを作成しました。')
-        return redirect('app:management_group_show', pk=management_group.pk)
-    return _render_new_form(request, form)
+    if not form.is_valid():
+        return _render_new_form(request, form)
+    management_group = services.management_group.create(form=form)
+    messages.success(request, '管理グループを作成しました。')
+    return redirect('app:management_group_show', pk=management_group.pk)
 
 
 # 管理グループ新規作成フォームのレンダリング
@@ -101,11 +103,11 @@ def _display_edit_form(request, management_group):
 # 管理グループの更新処理を行う
 def _update_management_group(request, management_group):
     form = ManagementGroupForm(request.POST, instance=management_group)
-    if form.is_valid():
-        form.save()
-        messages.success(request, '管理グループを更新しました。')
-        return redirect('app:management_group_show', pk=management_group.pk)
-    return _render_edit_form(request, management_group, form)
+    if not form.is_valid():
+        return _render_edit_form(request, management_group, form)
+    services.management_group.update(form=form)
+    messages.success(request, '管理グループを更新しました。')
+    return redirect('app:management_group_show', pk=management_group.pk)
 
 
 # 管理グループ編集フォームのレンダリング

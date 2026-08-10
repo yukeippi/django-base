@@ -1,19 +1,20 @@
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from app.forms import EmployeeLoginForm
 
 
 # ログイン
-def login(request):
+def login(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         return _authenticate_user(request)
     return _display_login_form(request)
 
 
 # ログアウト
-def logout(request):
+def logout(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         auth_logout(request)
         messages.success(request, 'ログアウトしました。')
