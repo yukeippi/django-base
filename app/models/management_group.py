@@ -28,15 +28,15 @@ class ManagementGroup(models.Model):
     # is_adminと部門・権限セット設定の整合性を検証する(全社管理者は部門・権限セットを持たず、それ以外は両方必須)
     def clean(self):
         if self.is_admin and self.department_id is not None:
-            raise ValidationError('全社管理者グループには部門を設定できません。')
+            raise ValidationError({'department': '全社管理者グループには部門を設定できません。'})
         if not self.is_admin and self.department_id is None:
-            raise ValidationError('全社管理者でない場合は部門の設定が必須です。')
+            raise ValidationError({'department': '全社管理者でない場合は部門の設定が必須です。'})
         if self.is_admin and self.permission_set_id is not None:
-            raise ValidationError('全社管理者グループには権限セットを設定できません。')
+            raise ValidationError({'permission_set_id': '全社管理者グループには権限セットを設定できません。'})
         if not self.is_admin and self.permission_set_id is None:
-            raise ValidationError('全社管理者でない場合は権限セットの設定が必須です。')
+            raise ValidationError({'permission_set_id': '全社管理者でない場合は権限セットの設定が必須です。'})
         if not self.is_admin and self.permission_set_id not in rule_sets.REGISTRY:
-            raise ValidationError('存在しない権限セット番号です。')
+            raise ValidationError({'permission_set_id': '存在しない権限セット番号です。'})
 
     def save(self, *args, **kwargs):
         self.full_clean()

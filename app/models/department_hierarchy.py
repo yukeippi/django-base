@@ -24,9 +24,9 @@ class DepartmentHierarchy(models.Model):
     # 親部門は同じ会社に属していなければならない
     def clean(self):
         if self.parent_department and self.parent_department.company_id != self.department.company_id:
-            raise ValidationError('親部門は同じ会社に属している必要があります。')
+            raise ValidationError({'parent_department': '親部門は同じ会社に属している必要があります。'})
         if self.parent_department_id is not None and self.parent_department_id == self.department_id:
-            raise ValidationError('親部門に自分自身を指定することはできません。')
+            raise ValidationError({'parent_department': '親部門に自分自身を指定することはできません。'})
 
     def save(self, *args, **kwargs):
         self.full_clean()

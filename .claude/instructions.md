@@ -521,12 +521,13 @@ class Command(BaseCommand):
 
 ## Model Validation Rules
 
-Djangoは`save()`時に自動でバリデーション(フィールドの`validators`、`clean()`)を実行しない(ModelFormの`is_valid()`経由でのみ実行される)。フォームを経由しない管理コマンド・データ移行などでもバリデーションが素通りしないよう、バリデーションロジックを持つモデルは`save()`をオーバーライドして`full_clean()`を必ず呼ぶ。
+検証ロジックはモデルに集約する。フィールドの`validators=[...]`と`clean()`に書き、フォームには書かない。同じルールを複数のフォームで重複させないため。
 
-- フィールドの`validators=[...]`や`clean()`に検証ロジックを書く。複数フィールドにまたがるユニーク制約(重複禁止)も、DBの`UniqueConstraint`ではなく`clean()`で`django.core.exceptions.ValidationError`を送出する形にする
-- `save()`をオーバーライドし、`super().save()`を呼ぶ前に`self.full_clean()`を呼ぶ(Railsのように、`save()`のたびに必ずバリデーションが走るようにする)
-- 理由: DB制約の追加・削除・変更にはマイグレーションが必要で、コードを読むだけでは制約の存在に気づきにくいため。また`save()`でバリデーションを効かせないと、フォームを経由しない直接作成でルール違反のデータが作られてしまう
-- ModelForm経由の保存では`is_valid()`(内部で`full_clean()`)とこの`save()`の両方でバリデーションが走るが、二重に検証されるだけで害はない
+モデルは`save()`をオーバーライドして`full_clean()`を呼ぶ。ModelForm経由の保存では`is_valid()`が内部でモデルの検証を実行するため重複するが、**フォームを伴わないservice(状態遷移など)や管理コマンドからの保存では、この`save()`が唯一の検証機会になる**ため、常に呼ぶ形にする。
+
+- `clean()`でのエラーは、原因が1つのフィールドに特定できる場合は辞書形式`ValidationError({'field_name': 'メッセージ'})`で送出し、フォーム経由なら該当フィールドの直下にエラーが表示されるようにする。複数フィールドの組み合わせ(重複チェック等、どちらのフィールドが「悪い」とは言えない場合)は非フィールドエラーとして文字列`ValidationError('メッセージ')`のまま送出する
+- `bulk_create()`/`bulk_update()`/`queryset.update()`/生SQLは`save()`を通らないため検証されない。検証ロジックを持つモデルに対してこれらを使わない。ただし、検証ロジック(`clean()`)が参照していないフィールドだけを対象にした`queryset.update()`は例外とする(例: 主務フラグを1人1件にするため、他レコードの`is_primary`だけを一括でOFFにする処理。`is_primary`自体は`clean()`の検証対象ではないため安全)
+- `clean()`でDBを参照する検証(重複チェック等)を書くと、フォーム経由の保存でクエリが2回発行される。ループでの大量保存には向かないため、その場合は別途検討する
 
 (注: この方針はまだ確信が持てていない試験的なルールで、今後変更する可能性がある)
 
@@ -541,11 +542,26 @@ class Department(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
 
-    # 同じ会社内で部門名が重複しないようにする
+    # 同じ会社内で部門名が重複しないようにする(company/nameのどちらが悪いとも言えないため非フィールドエラー)
     def clean(self):
         duplicates = Department.objects.filter(company=self.company, name=self.name).exclude(pk=self.pk)
         if duplicates.exists():
             raise ValidationError('この会社には同じ名前の部門が既に存在します。')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+```
+
+```python
+class DepartmentHierarchy(models.Model):
+    department = models.OneToOneField(Department, on_delete=models.CASCADE)
+    parent_department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.CASCADE)
+
+    # 親部門が不正な場合、原因はparent_departmentフィールドに特定できるためフィールドエラーにする
+    def clean(self):
+        if self.parent_department and self.parent_department.company_id != self.department.company_id:
+            raise ValidationError({'parent_department': '親部門は同じ会社に属している必要があります。'})
 
     def save(self, *args, **kwargs):
         self.full_clean()
