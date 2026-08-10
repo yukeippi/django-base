@@ -30,7 +30,7 @@ class TestUpdate:
         )
         assert form.is_valid()
 
-        updated_task = task_service.update(task=task, form=form)
+        updated_task = task_service.update(form=form)
 
         assert updated_task.title == '更新後のタスク'
 

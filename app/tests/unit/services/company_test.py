@@ -27,7 +27,7 @@ class TestUpdate:
         form = CompanyForm(data={'name': '更新後の会社'}, instance=company)
         assert form.is_valid()
 
-        updated_company = company_service.update(company=company, form=form)
+        updated_company = company_service.update(form=form)
 
         assert updated_company.name == '更新後の会社'
 

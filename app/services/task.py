@@ -12,7 +12,7 @@ def create(*, form: TaskForm, created_by: User) -> Task:
 
 
 # タスクを更新する
-def update(*, task: Task, form: TaskForm) -> Task:
+def update(*, form: TaskForm) -> Task:
     return form.save()
 
 

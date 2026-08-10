@@ -8,7 +8,7 @@ def create(*, form: ManagementGroupForm) -> ManagementGroup:
 
 
 # 管理グループを更新する
-def update(*, management_group: ManagementGroup, form: ManagementGroupForm) -> ManagementGroup:
+def update(*, form: ManagementGroupForm) -> ManagementGroup:
     return form.save()
 
 

@@ -106,7 +106,7 @@ def _update_company(request, company):
     form = CompanyForm(request.POST, instance=company)
     if not form.is_valid():
         return _render_edit_form(request, company, form)
-    services.company.update(company=company, form=form)
+    services.company.update(form=form)
     messages.success(request, '会社情報を更新しました。')
     return redirect('app:company_show', pk=company.pk)
 

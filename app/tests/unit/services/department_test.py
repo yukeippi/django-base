@@ -29,7 +29,7 @@ class TestUpdate:
         form = DepartmentForm(data={'company': company.id, 'name': '更新後の部門'}, instance=department)
         assert form.is_valid()
 
-        updated_department = department_service.update(department=department, form=form)
+        updated_department = department_service.update(form=form)
 
         assert updated_department.name == '更新後の部門'
 

@@ -104,7 +104,7 @@ def _update_management_group(request, management_group):
     form = ManagementGroupForm(request.POST, instance=management_group)
     if not form.is_valid():
         return _render_edit_form(request, management_group, form)
-    services.management_group.update(management_group=management_group, form=form)
+    services.management_group.update(form=form)
     messages.success(request, '管理グループを更新しました。')
     return redirect('app:management_group_show', pk=management_group.pk)
 

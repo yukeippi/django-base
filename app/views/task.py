@@ -111,7 +111,7 @@ def _update_task(request, task):
     form = TaskForm(request.POST, instance=task)
     if not form.is_valid():
         return _render_edit_form(request, task, form)
-    services.task.update(task=task, form=form)
+    services.task.update(form=form)
     messages.success(request, 'タスクを更新しました。')
     return redirect('app:task_show', pk=task.pk)
 

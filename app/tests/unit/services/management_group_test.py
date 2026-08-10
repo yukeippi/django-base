@@ -29,7 +29,7 @@ class TestUpdate:
         )
         assert form.is_valid()
 
-        updated_group = management_group_service.update(management_group=management_group, form=form)
+        updated_group = management_group_service.update(form=form)
 
         assert updated_group.name == '更新後のチーム'
 

@@ -8,7 +8,7 @@ def create(*, form: DepartmentForm) -> Department:
 
 
 # 部門を更新する
-def update(*, department: Department, form: DepartmentForm) -> Department:
+def update(*, form: DepartmentForm) -> Department:
     return form.save()
 
 

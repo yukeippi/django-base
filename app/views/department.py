@@ -107,7 +107,7 @@ def _update_department(request, department):
     form = DepartmentForm(request.POST, instance=department)
     if not form.is_valid():
         return _render_edit_form(request, department, form)
-    services.department.update(department=department, form=form)
+    services.department.update(form=form)
     messages.success(request, '部門情報を更新しました。')
     return redirect('app:department_show', pk=department.pk)
 
