@@ -13,6 +13,8 @@ MODEL_NAME = 'Employee'
 
 
 # 社員一覧
+# 権限判定をPython側で行うため全件をメモリに展開してからフィルタする。件数が増えるとPaginatorの
+# メリット(DBへのLIMIT/OFFSET)が失われるため、その場合はDB側で絞り込む方式への変更を検討する
 @login_required
 def index(request: HttpRequest) -> HttpResponse:
     employees_qs = Employee.objects.with_user()

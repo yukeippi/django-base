@@ -13,6 +13,8 @@ MODEL_NAME = 'Company'
 
 
 # 会社一覧
+# 権限判定をPython側で行うため全件をメモリに展開してからフィルタする。件数が増えるとPaginatorの
+# メリット(DBへのLIMIT/OFFSET)が失われるため、その場合はDB側で絞り込む方式への変更を検討する
 @login_required
 def index(request: HttpRequest) -> HttpResponse:
     companies = [company for company in Company.objects.all() if can_view(request.user, MODEL_NAME, company)]

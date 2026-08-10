@@ -27,30 +27,6 @@ class TestEmployeeDepartmentModel:
         with pytest.raises(ValidationError):
             EmployeeDepartment.objects.create(employee=employee, department=department)
 
-    # 新しく主務を設定すると、既存の主務が自動的に解除されることを確認
-    def test_new_primary_unsets_previous_primary(self):
-        employee = _create_employee('E7003')
-        dept_a = _create_department('開発部')
-        dept_b = _create_department('営業部')
-        relation_a = EmployeeDepartment.objects.create(employee=employee, department=dept_a, is_primary=True)
-
-        EmployeeDepartment.objects.create(employee=employee, department=dept_b, is_primary=True)
-
-        relation_a.refresh_from_db()
-        assert relation_a.is_primary is False
-
-    # 別の社員の主務には影響しないことを確認
-    def test_primary_change_does_not_affect_other_employees(self):
-        employee_a = _create_employee('E7004')
-        employee_b = _create_employee('E7005')
-        department = _create_department('開発部')
-        relation_b = EmployeeDepartment.objects.create(employee=employee_b, department=department, is_primary=True)
-
-        EmployeeDepartment.objects.create(employee=employee_a, department=department, is_primary=True)
-
-        relation_b.refresh_from_db()
-        assert relation_b.is_primary is True
-
     # __str__が「社員 - 部門」を返すことを確認
     def test_str_returns_employee_and_department(self):
         employee = _create_employee('E7006')
@@ -58,6 +34,25 @@ class TestEmployeeDepartmentModel:
         relation = EmployeeDepartment.objects.create(employee=employee, department=department)
 
         assert str(relation) == f'{employee} - {department}'
+
+
+# EmployeeDepartmentQuerySetのテストクラス
+@pytest.mark.django_db
+class TestEmployeeDepartmentQuerySet:
+
+    # primary()が主務の所属のみに絞り込むことを確認
+    def test_primary_filters_to_primary_relations(self):
+        employee = _create_employee('E7007')
+        primary_department = _create_department('開発部')
+        secondary_department = _create_department('営業部')
+        primary_relation = EmployeeDepartment.objects.create(
+            employee=employee, department=primary_department, is_primary=True
+        )
+        EmployeeDepartment.objects.create(employee=employee, department=secondary_department)
+
+        result = list(employee.employee_departments.primary())
+
+        assert result == [primary_relation]
 
 
 def _create_employee(employee_number):

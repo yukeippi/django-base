@@ -49,7 +49,7 @@ def _get_primary_department(user):
     employee = getattr(user, 'employee', None)
     if employee is None:
         return None
-    primary = employee.employee_departments.filter(is_primary=True).first()
+    primary = employee.employee_departments.primary().first()
     return primary.department if primary else None
 
 
