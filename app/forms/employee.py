@@ -28,7 +28,7 @@ class EmployeeForm(forms.Form):
         self.initial.setdefault('first_name', instance.user.first_name)
 
     # 社員番号が他の社員と重複していないかチェック(自分自身は除外)
-    def clean_employee_number(self):
+    def clean_employee_number(self) -> str:
         employee_number = self.cleaned_data['employee_number']
         duplicates = Employee.objects.filter(employee_number=employee_number)
         if self.instance is not None:
