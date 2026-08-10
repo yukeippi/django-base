@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from app import services
 from app.forms import ManagementGroupForm
@@ -11,7 +12,7 @@ from app.permissions.roles import is_admin
 
 # 管理グループ一覧
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     _require_admin(request)
     groups_qs = ManagementGroup.objects.all()
     paginator = Paginator(groups_qs, 10)
@@ -24,7 +25,7 @@ def index(request):
 
 # 管理グループ詳細
 @login_required
-def show(request, pk):
+def show(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     return render(request, 'app/management_group/show.html', {'management_group': management_group})
@@ -32,7 +33,7 @@ def show(request, pk):
 
 # 管理グループ新規作成
 @login_required
-def new(request):
+def new(request: HttpRequest) -> HttpResponse:
     _require_admin(request)
     if request.method == 'POST':
         return _create_management_group(request)
@@ -41,7 +42,7 @@ def new(request):
 
 # 管理グループ編集
 @login_required
-def edit(request, pk):
+def edit(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     if request.method == 'POST':
@@ -51,7 +52,7 @@ def edit(request, pk):
 
 # 管理グループ削除
 @login_required
-def delete(request, pk):
+def delete(request: HttpRequest, pk: int) -> HttpResponse:
     _require_admin(request)
     management_group = get_object_or_404(ManagementGroup, pk=pk)
     if request.method == 'POST':

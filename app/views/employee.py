@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from app import services
 from app.forms import EmployeeForm
@@ -13,7 +14,7 @@ MODEL_NAME = 'Employee'
 
 # 社員一覧
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     employees_qs = Employee.objects.select_related('user').all()
     employees = [employee for employee in employees_qs if can_view(request.user, MODEL_NAME, employee)]
     paginator = Paginator(employees, 10)
@@ -26,7 +27,7 @@ def index(request):
 
 # 社員詳細
 @login_required
-def show(request, pk):
+def show(request: HttpRequest, pk: int) -> HttpResponse:
     employee = get_object_or_404(Employee, pk=pk)
     if not can_view(request.user, MODEL_NAME, employee):
         raise PermissionDenied
@@ -35,7 +36,7 @@ def show(request, pk):
 
 # 社員新規作成
 @login_required
-def new(request):
+def new(request: HttpRequest) -> HttpResponse:
     if not can_display_create_form(request.user, MODEL_NAME):
         raise PermissionDenied
     if request.method == 'POST':
@@ -45,7 +46,7 @@ def new(request):
 
 # 社員編集
 @login_required
-def edit(request, pk):
+def edit(request: HttpRequest, pk: int) -> HttpResponse:
     employee = get_object_or_404(Employee, pk=pk)
     if not can_edit(request.user, MODEL_NAME, employee):
         raise PermissionDenied
@@ -56,7 +57,7 @@ def edit(request, pk):
 
 # 社員削除
 @login_required
-def delete(request, pk):
+def delete(request: HttpRequest, pk: int) -> HttpResponse:
     employee = get_object_or_404(Employee, pk=pk)
     if not can_delete(request.user, MODEL_NAME, employee):
         raise PermissionDenied
