@@ -15,7 +15,7 @@ MODEL_NAME = 'Employee'
 # 社員一覧
 @login_required
 def index(request: HttpRequest) -> HttpResponse:
-    employees_qs = Employee.objects.select_related('user').all()
+    employees_qs = Employee.objects.with_user()
     employees = [employee for employee in employees_qs if can_view(request.user, MODEL_NAME, employee)]
     paginator = Paginator(employees, 10)
     page_obj = paginator.get_page(request.GET.get('page'))

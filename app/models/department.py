@@ -1,12 +1,22 @@
+from typing import Self
 from django.core.exceptions import ValidationError
 from django.db import models
 from app.models.company import Company
+
+
+class DepartmentQuerySet(models.QuerySet):
+
+    # 一覧表示で必要な関連(会社)をまとめて読み込む
+    def with_company(self) -> Self:
+        return self.select_related('company')
 
 
 # 部門情報のためのサンプルモデル
 class Department(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='departments', verbose_name='会社')
     name = models.CharField(max_length=100, verbose_name='部門名')
+
+    objects = DepartmentQuerySet.as_manager()
 
     class Meta:
         db_table = 'department'

@@ -1,5 +1,13 @@
+from typing import Self
 from django.db import models
 from django.contrib.auth.models import User
+
+
+class EmployeeQuerySet(models.QuerySet):
+
+    # 一覧表示で必要な関連(ユーザー)をまとめて読み込む
+    def with_user(self) -> Self:
+        return self.select_related('user')
 
 
 # 社員情報のためのサンプルモデル
@@ -11,6 +19,8 @@ class Employee(models.Model):
     departments = models.ManyToManyField(
         'Department', through='EmployeeDepartment', related_name='employees', blank=True, verbose_name='所属部門'
     )
+
+    objects = EmployeeQuerySet.as_manager()
 
     class Meta:
         db_table = 'employee'

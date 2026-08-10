@@ -40,3 +40,26 @@ class TestDepartmentModel:
         department = Department.objects.create(company=company, name='開発部')
 
         assert str(department) == 'サンプル株式会社 / 開発部'
+
+
+# DepartmentQuerySetのテストクラス
+@pytest.mark.django_db
+class TestDepartmentQuerySet:
+
+    # with_company()が全件を返すことを確認
+    def test_with_company_returns_all_departments(self):
+        company = Company.objects.create(name='サンプル株式会社')
+        department = Department.objects.create(company=company, name='開発部')
+
+        result = list(Department.objects.with_company())
+
+        assert result == [department]
+
+    # with_company()がcompanyをselect_relatedし、追加クエリが発生しないことを確認
+    def test_with_company_avoids_extra_query(self, django_assert_num_queries):
+        company = Company.objects.create(name='サンプル株式会社')
+        Department.objects.create(company=company, name='開発部')
+
+        with django_assert_num_queries(1):
+            department = Department.objects.with_company().first()
+            str(department.company)

@@ -41,3 +41,26 @@ class TestEmployeeModel:
         employee = Employee.objects.create(user=user, employee_number='E5001')
 
         assert str(employee) == 'taro'
+
+
+# EmployeeQuerySetのテストクラス
+@pytest.mark.django_db
+class TestEmployeeQuerySet:
+
+    # with_user()が全件を返すことを確認
+    def test_with_user_returns_all_employees(self):
+        user = User.objects.create_user(username='taro', password='pass12345')
+        employee = Employee.objects.create(user=user, employee_number='E6001')
+
+        result = list(Employee.objects.with_user())
+
+        assert result == [employee]
+
+    # with_user()がuserをselect_relatedし、追加クエリが発生しないことを確認
+    def test_with_user_avoids_extra_query(self, django_assert_num_queries):
+        user = User.objects.create_user(username='taro', password='pass12345')
+        Employee.objects.create(user=user, employee_number='E7001')
+
+        with django_assert_num_queries(1):
+            employee = Employee.objects.with_user().first()
+            str(employee.user)

@@ -15,7 +15,7 @@ MODEL_NAME = 'Department'
 # 部門一覧
 @login_required
 def index(request: HttpRequest) -> HttpResponse:
-    departments_qs = Department.objects.select_related('company').all()
+    departments_qs = Department.objects.with_company()
     departments = [department for department in departments_qs if can_view(request.user, MODEL_NAME, department)]
     paginator = Paginator(departments, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
