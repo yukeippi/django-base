@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import TaskForm
 from app.models import Task
 from app.permissions.roles import can_delete_task, can_edit_task
@@ -58,7 +59,7 @@ def delete(request, pk):
     if not can_delete_task(request.user, task):
         raise PermissionDenied
     if request.method == 'POST':
-        task.delete()
+        services.task.delete(task=task)
         messages.success(request, 'タスクを削除しました。')
         return redirect('app:task_index')
     return render(request, 'app/task/delete.html', {'task': task})
@@ -87,13 +88,11 @@ def _display_new_form(request):
 # タスクの新規作成処理を行う
 def _create_task(request):
     form = TaskForm(request.POST)
-    if form.is_valid():
-        task = form.save(commit=False)
-        task.created_by = request.user
-        task.save()
-        messages.success(request, 'タスクを作成しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_new_form(request, form)
+    if not form.is_valid():
+        return _render_new_form(request, form)
+    task = services.task.create(form=form, created_by=request.user)
+    messages.success(request, 'タスクを作成しました。')
+    return redirect('app:task_show', pk=task.pk)
 
 
 # タスク新規作成フォームのレンダリング
@@ -110,11 +109,11 @@ def _display_edit_form(request, task):
 # タスクの更新処理を行う
 def _update_task(request, task):
     form = TaskForm(request.POST, instance=task)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'タスクを更新しました。')
-        return redirect('app:task_show', pk=task.pk)
-    return _render_edit_form(request, task, form)
+    if not form.is_valid():
+        return _render_edit_form(request, task, form)
+    services.task.update(task=task, form=form)
+    messages.success(request, 'タスクを更新しました。')
+    return redirect('app:task_show', pk=task.pk)
 
 
 # タスク編集フォームのレンダリング
