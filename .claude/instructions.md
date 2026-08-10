@@ -250,6 +250,25 @@ def _create_task(request):
     return redirect('app:task_show', pk=task.pk)
 ```
 
+## Function Signature Rules
+
+関数・メソッドのシグネチャは、実際の利用実態を正確に表すものにする。ビューに限らず、モデル・フォーム・service・共有モジュールなど全てのPythonコードに適用する。
+
+- **使わない引数は持たない**: 関数内で参照していない引数は削除する。シグネチャに残しておくと「この値が結果に影響する」という誤った契約を呼び出し側に示してしまい、渡した値が実際の処理と食い違っていても検出されない。他の関数とシグネチャを揃えたいという理由だけで意味のない引数を残さない
+- **引数と戻り値に型注釈(type hints)を付ける**: 呼び出し側がIDEの補完・型チェッカーの恩恵を受けられるようにする
+
+### Example
+
+```python
+# 避ける書き方(companyはform.save()の結果に影響しない。form.saveはform.instanceを使う)
+def update(company, form) -> Company:
+    return form.save()
+
+# 良い書き方(実際に使う引数だけを、型注釈付きで受け取る)
+def update(*, form: CompanyForm) -> Company:
+    return form.save()
+```
+
 ## Partial Template Rules
 
 Djangoにはpartialに関するネーミング規則が無いため、Railsに倣い、`{% include %}` で読み込むパーシャルテンプレートのファイル名の先頭には `_` を付ける。
@@ -550,7 +569,7 @@ class Department(models.Model):
 
 - 引数はキーワード専用(`*`以降)にする。呼び出し側で各引数の意味が読めるようにするため
 - `HttpRequest`を受け取らない。管理コマンド・バッチ・テストから同じ関数を呼べるようにするため。検証済みのフォーム(`Form`インスタンス)は受け取ってよい
-- 引数と戻り値に型注釈を付ける
+- 引数・戻り値の型注釈、使わない引数を持たないことについてはFunction Signature Rulesに従う
 - `@transaction.atomic`はserviceに付ける。viewとmodelには書かない。1つの業務操作 = 1つのトランザクションとする
 - serviceは他のserviceパッケージを呼ばない。`services/task.py`から`services/project.py`を呼ばない。トランザクション境界が追跡できなくなるため。同一ファイル内のprivateヘルパー(`_`始まり)への切り出しは可
 
