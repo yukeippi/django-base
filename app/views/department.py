@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import DepartmentForm
 from app.models import Department
 from app.permissions.access import can_create, can_delete, can_display_create_form, can_edit, can_view
@@ -60,7 +61,7 @@ def delete(request, pk):
     if not can_delete(request.user, MODEL_NAME, department):
         raise PermissionDenied
     if request.method == 'POST':
-        department.delete()
+        services.department.delete(department=department)
         messages.success(request, '部門を削除しました。')
         return redirect('app:department_index')
     return render(request, 'app/department/delete.html', {'department': department})
@@ -85,7 +86,7 @@ def _create_department(request):
     candidate = Department(**form.cleaned_data)
     if not can_create(request.user, MODEL_NAME, candidate):
         raise PermissionDenied
-    department = form.save()
+    department = services.department.create(form=form)
     messages.success(request, '部門を作成しました。')
     return redirect('app:department_show', pk=department.pk)
 
@@ -104,11 +105,11 @@ def _display_edit_form(request, department):
 # 部門の更新処理を行う
 def _update_department(request, department):
     form = DepartmentForm(request.POST, instance=department)
-    if form.is_valid():
-        form.save()
-        messages.success(request, '部門情報を更新しました。')
-        return redirect('app:department_show', pk=department.pk)
-    return _render_edit_form(request, department, form)
+    if not form.is_valid():
+        return _render_edit_form(request, department, form)
+    services.department.update(department=department, form=form)
+    messages.success(request, '部門情報を更新しました。')
+    return redirect('app:department_show', pk=department.pk)
 
 
 # 部門編集フォームのレンダリング
