@@ -7,7 +7,7 @@
 
 ## File Structure Rules
 
-models、forms、views、tests、templatesはディレクトリ化し、機能ごとにファイル分割してください。
+models、forms、views、services、tests、templatesはディレクトリ化し、機能ごとにファイル分割してください。
 
 ### Examples
 - models/todo.py
@@ -222,7 +222,7 @@ privateヘルパーは、フォームの束縛・serviceの呼び出し・messag
 
 ## Control Flow Rules
 
-`if`のネストを深くしない。条件が成立しない場合や異常系は早期に`return`し、`else`で包まずインデントを1段に保つ(ガード節/早期return)。ビューに限らず、モデル・フォーム・共有モジュールなど全てのPythonコードに適用する。
+`if`のネストを深くしない。条件が成立しない場合や異常系は早期に`return`し、`else`で包まずインデントを1段に保つ(ガード節/早期return)。ビューに限らず、モデル・フォーム・service・共有モジュールなど全てのPythonコードに適用する。
 
 ### Example
 
