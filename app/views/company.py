@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import CompanyForm
 from app.models import Company
 from app.permissions.access import can_create, can_delete, can_display_create_form, can_edit, can_view
@@ -59,7 +60,7 @@ def delete(request, pk):
     if not can_delete(request.user, MODEL_NAME, company):
         raise PermissionDenied
     if request.method == 'POST':
-        company.delete()
+        services.company.delete(company=company)
         messages.success(request, '会社を削除しました。')
         return redirect('app:company_index')
     return render(request, 'app/company/delete.html', {'company': company})
@@ -84,7 +85,7 @@ def _create_company(request):
     candidate = Company(**form.cleaned_data)
     if not can_create(request.user, MODEL_NAME, candidate):
         raise PermissionDenied
-    company = form.save()
+    company = services.company.create(form=form)
     messages.success(request, '会社を作成しました。')
     return redirect('app:company_show', pk=company.pk)
 
@@ -103,11 +104,11 @@ def _display_edit_form(request, company):
 # 会社の更新処理を行う
 def _update_company(request, company):
     form = CompanyForm(request.POST, instance=company)
-    if form.is_valid():
-        form.save()
-        messages.success(request, '会社情報を更新しました。')
-        return redirect('app:company_show', pk=company.pk)
-    return _render_edit_form(request, company, form)
+    if not form.is_valid():
+        return _render_edit_form(request, company, form)
+    services.company.update(company=company, form=form)
+    messages.success(request, '会社情報を更新しました。')
+    return redirect('app:company_show', pk=company.pk)
 
 
 # 会社編集フォームのレンダリング
