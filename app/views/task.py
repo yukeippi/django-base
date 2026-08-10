@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from app import services
 from app.forms import TaskForm
@@ -12,7 +12,7 @@ from app.permissions.roles import can_delete_task, can_edit_task
 
 # タスク一覧
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     tasks_qs = Task.objects.all()
     paginator = Paginator(tasks_qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -24,7 +24,7 @@ def index(request):
 
 # タスク詳細
 @login_required
-def show(request, pk):
+def show(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     return render(request, 'app/task/show.html', {
         'task': task,
@@ -35,7 +35,7 @@ def show(request, pk):
 
 # タスク新規作成
 @login_required
-def new(request):
+def new(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         return _create_task(request)
     return _display_new_form(request)
@@ -43,7 +43,7 @@ def new(request):
 
 # タスク編集
 @login_required
-def edit(request, pk):
+def edit(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
@@ -54,7 +54,7 @@ def edit(request, pk):
 
 # タスク削除
 @login_required
-def delete(request, pk):
+def delete(request: HttpRequest, pk: int) -> HttpResponse:
     task = get_object_or_404(Task, pk=pk)
     if not can_delete_task(request.user, task):
         raise PermissionDenied
@@ -67,7 +67,7 @@ def delete(request, pk):
 
 # タスクAPI(E2Eテスト用)
 @login_required
-def api(request):
+def api(request: HttpRequest) -> HttpResponse:
     if request.method == 'GET':
         tasks = Task.objects.all().values('id', 'title', 'status', 'priority')
         return JsonResponse(list(tasks), safe=False)
