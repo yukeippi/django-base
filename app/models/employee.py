@@ -18,5 +18,5 @@ class Employee(models.Model):
         verbose_name = '社員'
         verbose_name_plural = '社員'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.user.get_full_name() or self.user.username

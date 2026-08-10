@@ -1,3 +1,4 @@
+from typing import Any
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -57,21 +58,21 @@ class Task(models.Model):
         verbose_name = 'タスク'
         verbose_name_plural = 'タスク'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.title
 
     # save()のたびに必ずバリデーション(フィールドのvalidators等)が走るようにする
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         self.full_clean()
         super().save(*args, **kwargs)
 
     # 期限を過ぎているかチェック
-    def is_overdue(self):
+    def is_overdue(self) -> bool:
         if not self.due_date:
             return False
         from django.utils import timezone
         return self.due_date < timezone.now().date() and self.status != 'done'
 
     # 完了可能かチェック
-    def can_be_completed(self):
+    def can_be_completed(self) -> bool:
         return self.status in ['todo', 'in_progress']

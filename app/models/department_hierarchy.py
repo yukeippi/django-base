@@ -1,3 +1,4 @@
+from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import models
 from app.models.department import Department
@@ -18,16 +19,16 @@ class DepartmentHierarchy(models.Model):
         verbose_name = '部門階層'
         verbose_name_plural = '部門階層'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.department} (親: {self.parent_department})'
 
     # 親部門は同じ会社に属していなければならない
-    def clean(self):
+    def clean(self) -> None:
         if self.parent_department and self.parent_department.company_id != self.department.company_id:
             raise ValidationError('親部門は同じ会社に属している必要があります。')
         if self.parent_department_id is not None and self.parent_department_id == self.department_id:
             raise ValidationError('親部門に自分自身を指定することはできません。')
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         self.full_clean()
         super().save(*args, **kwargs)
