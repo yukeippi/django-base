@@ -179,8 +179,8 @@ CBVを使わずFBVを選んでいるのは、Railsのコントローラーのよ
 ```python
 # app/views/task.py
 
-# タスク編集
 def edit(request, pk):
+    """タスクを編集する。"""
     task = get_object_or_404(Task, pk=pk)
     if request.method == 'POST':
         return _update_task(request, task)
@@ -284,7 +284,12 @@ templates/app/task/_task_card.html
 
 ## Comment Rules
 
-関数・メソッド・クラスの説明にはdocstringを使わず、定義の上に通常のコメントで記述する。
+コメントは「何をするか」と「なぜそうするか」で書き方を使い分ける。
+
+- **公開関数・公開メソッドの「何をするか」は一文のdocstringで書く**。対象範囲はFunction Signature Rulesの型注釈ルールと同じ(privateヘルパー(`_`始まり)と、`clean()`/`save()`/`__str__()`/`__init__()`のような基底クラス・Python自身がシグネチャを決めるメソッドは対象外)
+- **`#`コメントは「なぜこうしているか」が非自明なときだけ**、該当箇所の直前に書く。コードを読めば分かる「何をしているか」をそのまま言い換えるだけの`#`コメントは書かない
+- クラス自体の説明・privateヘルパーの説明は、これまで通り定義の上に`#`コメントで書く(docstring化しない)
+- **テスト関数(`test_`始まり)もdocstring化しない**。docstringの効用は呼び出し元でのホバー表示だが、テスト関数はテストランナーが直接収集・実行するだけで他のコードから名前で呼ばれないため、ホバー表示の恩恵がない。従来通り定義の上に`#`コメントでそのテストが守る仕様を書く
 
 ### Example
 
@@ -292,8 +297,8 @@ templates/app/task/_task_card.html
 # タスク管理のためのモデル
 class Task(models.Model):
 
-    # 期限を過ぎているかチェック
     def is_overdue(self):
+        """期限を過ぎているかどうか。"""
         ...
 ```
 
@@ -487,8 +492,8 @@ fake = Faker('ja_JP')
 DUMMY_EMPLOYEE_COUNT = 10
 
 
-# 社員のシードデータを作成する
 def create():
+    """社員のシードデータを作成する。"""
     # ログイン確認用に社員番号を固定した社員
     _create_employee('E0001', '太郎', '山田', is_staff=True)
     _create_employee('E0002', '花子', '鈴木')
@@ -629,8 +634,8 @@ serviceが持つのは操作の手順であり、状態の意味ではない。
 class Task(models.Model):
     ...
 
-    # 完了可能な状態かどうか
     def can_complete(self):
+        """完了可能な状態かどうか。"""
         if self.status == Task.Status.COMPLETED:
             return False
         return not self.children.exclude(status=Task.Status.COMPLETED).exists()
@@ -640,13 +645,13 @@ class Task(models.Model):
 # app/services/task.py
 from django.db import transaction
 
-# タスクを作成する
 def create(*, form: TaskForm) -> Task:
+    """タスクを作成する。"""
     return form.save()
 
-# タスクを完了にする
 @transaction.atomic
 def complete(*, task: Task, operator: User) -> Task:
+    """タスクを完了にする。"""
     # 1. 検証
     if not task.can_complete():
         raise ValidationError('このタスクは完了できません。')
@@ -702,16 +707,16 @@ __all__ = ['task']
 
 class TaskQuerySet(models.QuerySet):
 
-    # 未完了のタスクに絞り込む
     def incomplete(self):
+        """未完了のタスクに絞り込む。"""
         return self.exclude(status=Task.Status.COMPLETED)
 
-    # 期限を過ぎた未完了タスクに絞り込む
     def overdue(self):
+        """期限を過ぎた未完了タスクに絞り込む。"""
         return self.incomplete().filter(due_on__lt=timezone.localdate())
 
-    # 一覧表示で必要な関連をまとめて読み込む
     def with_details(self):
+        """一覧表示で必要な関連をまとめて読み込む。"""
         return self.select_related('assignee').prefetch_related('children')
 
 
