@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from app import services
 from app.forms import EmployeeForm
 from app.models import Employee
 from app.permissions.access import can_create, can_delete, can_display_create_form, can_edit, can_view
@@ -60,7 +61,7 @@ def delete(request, pk):
     if not can_delete(request.user, MODEL_NAME, employee):
         raise PermissionDenied
     if request.method == 'POST':
-        employee.user.delete()
+        services.employee.delete(employee=employee)
         messages.success(request, '社員情報を削除しました。')
         return redirect('app:employee_index')
     return render(request, 'app/employee/delete.html', {'employee': employee})
@@ -85,7 +86,7 @@ def _create_employee(request):
     candidate = Employee(employee_number=form.cleaned_data['employee_number'])
     if not can_create(request.user, MODEL_NAME, candidate):
         raise PermissionDenied
-    employee = form.save()
+    employee = services.employee.create(form=form)
     messages.success(request, '社員を登録しました。')
     return redirect('app:employee_show', pk=employee.pk)
 
@@ -104,11 +105,11 @@ def _display_edit_form(request, employee):
 # 社員の更新処理を行う
 def _update_employee(request, employee):
     form = EmployeeForm(request.POST, instance=employee)
-    if form.is_valid():
-        form.save()
-        messages.success(request, '社員情報を更新しました。')
-        return redirect('app:employee_show', pk=employee.pk)
-    return _render_edit_form(request, employee, form)
+    if not form.is_valid():
+        return _render_edit_form(request, employee, form)
+    services.employee.update(employee=employee, form=form)
+    messages.success(request, '社員情報を更新しました。')
+    return redirect('app:employee_show', pk=employee.pk)
 
 
 # 社員編集フォームのレンダリング
